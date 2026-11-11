@@ -1,1 +1,21 @@
-
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Certificate of publication</title><link rel="stylesheet" href="/style.css"></head>
+<body class="form page"><div class="mast"><img src="/logo-review.png" alt="The County Review"><img src="/logo-roundup.png" alt="County Roundup"></div>
+<style>@media print{.noprint{display:none}.mast{display:none}}</style>
+<h1>Certificate of Publication</h1><div id="out"><p class="msg">Loading...</p></div>
+<script>
+const $=s=>document.querySelector(s),el=(t,p={},k=[])=>{const n=Object.assign(document.createElement(t),p);n.append(...k);return n};
+const row=(a,b)=>el('div',{className:'row'},[el('span',{textContent:a}),el('b',{textContent:String(b)})]);
+const d=x=>x?new Date(x).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'';
+(async()=>{try{const q=new URLSearchParams(location.search),key=sessionStorage.getItem('deskKey')||localStorage.getItem('deskKey')||'';
+ const r=await fetch(`/api/boards/${encodeURIComponent(q.get('id')||'')}/certificate?t=${encodeURIComponent(q.get('t')||'')}`,{headers:key?{'x-api-key':key}:{}}),c=await r.json();if(!r.ok)throw new Error(c.error);
+ const e=c.extra||{};
+ $('#out').replaceChildren(
+  el('p',{textContent:'The County Review and County Roundup (Taita Taveta) record that the notice below was published as shown. This certificate states facts about publication only. It does not state or imply that publication satisfies any court order. That is for the court to decide.'}),
+  el('h3',{textContent:'The notice'}),el('div',{className:'note'},[el('b',{textContent:c.title}),el('p',{textContent:c.summary})]),
+  el('h3',{textContent:'Details'}),row('Case number',e.case_no||'-'),row('Court',e.court||'-'),row('Date of court order',e.order_date||'-'),row('Advocate or process server',(e.advocate||'-')+(e.firm?', '+e.firm:'')),row('Area',c.area||'Whole county'),
+  el('h3',{textContent:'Publication record'}),row('Published online from',d(c.published_at)),row('Ran until',d(c.expires_on)),row('Address',(c.site||location.origin)+'  (Notices, Legal notices)'),
+  row('Also printed',c.print_edition?`${c.print_edition}, print run about ${c.print_run}`:'Not recorded as printed'),row('Feed views in the area during the run',c.views_in_area+' (page loads, not unique people)'),
+  row('Record fingerprint',c.content_hash||'-'),row('Certificate produced',d(c.generated_at)),
+  el('button',{className:'noprint',textContent:'Print or save as PDF',onclick:()=>print()}))}catch(e){$('#out').replaceChildren(el('p',{className:'msg',textContent:e.message||'Certificate not found.'}))}})();
+</script></body></html>

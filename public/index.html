@@ -1,1 +1,353 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b5510"><link rel="manifest" href="/manifest.webmanifest">
+<title>Taita Taveta County Review & Roundup</title>
+<link rel="stylesheet" href="/style.css"></head><body>
+<header>
+  <div id="alert" role="alert" hidden></div>
+  <div class="mast"><img id="logo" src="/logo-review.png" alt="The County Review"></div>
+  <div class="bar"><span id="date"></span><select id="sub" aria-label="Sub-county"><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option></select><button id="install">Install</button></div>
+  <div class="voices" id="voices" hidden><button data-paper="review" aria-pressed="true">The County Review</button><button data-paper="roundup" aria-pressed="false">County Roundup</button></div>
+</header>
+<main id="view"><p class="msg">Loading…</p></main>
+<nav aria-label="Sections">
+  <button data-view="today" aria-current="true">Today</button><button data-view="news">News</button>
+  <button data-view="notices">Notices</button><button data-view="learn">Learn</button><button data-view="shows">Shows</button><button data-view="map">Map</button>
+</nav>
+<script>
+const $ = s => document.querySelector(s);
+const st = { view: 'today', paper: 'review', topic: '', sub: localStorage.getItem('sub') || 'voi', lang: localStorage.getItem('lang') || 'en', pos: null };
+$('#sub').value = st.sub;
+const el = (t, p = {}, k = []) => { const n = Object.assign(document.createElement(t), p); n.append(...k); return n; };
+const opts = (list, label = x => x) => list.map(v => el('option', { value: Array.isArray(v) ? v[0] : v, textContent: Array.isArray(v) ? v[1] : label(v) }));
+const safeUrl = u => { try { const x = new URL(u, location.href); return ['http:', 'https:'].includes(x.protocol) ? x.href : ''; } catch { return ''; } };
+const track = (kind, ref) => navigator.sendBeacon?.('/api/events', new Blob([JSON.stringify({ kind, ref, sub_county: st.sub })], { type: 'application/json' }));
+const j = async u => { const r = await fetch(u); if (!r.ok) throw new Error(); return r.json(); };
+const msg = t => el('p', { className: 'msg', textContent: t });
+const sect = (t, k) => el('section', { className: 'blk' }, [el('h3', { textContent: t }), ...k]);
+const km = (a, m) => { const r = x => x * Math.PI / 180, dl = r(m.latitude - a[0]), dn = r(m.longitude - a[1]);
+  return 12742 * Math.asin(Math.sqrt(Math.sin(dl / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(m.latitude)) * Math.sin(dn / 2) ** 2)); };
 
+function player(url, ref, poster) {
+  const b = el('button', { textContent: '▶', ariaLabel: 'Play video' }), box = el('div', { className: 'vid' }, [b]);
+  if (safeUrl(poster)) box.prepend(el('img', { src: safeUrl(poster), alt: '', loading: 'lazy', className: 'poster' }));
+  const yt = safeUrl(url).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+  b.onclick = () => { track('video_play', ref); box.replaceChildren(yt
+    ? el('iframe', { src: `https://www.youtube-nocookie.com/embed/${yt[1]}?autoplay=1`, allow: 'autoplay; encrypted-media', allowFullscreen: true, title: 'Video' })
+    : el('video', { src: safeUrl(url), controls: true, autoplay: true, preload: 'none' })); };
+  return box;
+}
+function otherSide(s) {                            // the rival paper's lead, one tap away
+  const other = st.paper === 'review' ? 'roundup' : 'review', name = other === 'roundup' ? 'County Roundup' : 'The County Review';
+  return el('a', { className: 'otherside', href: '#', onclick: e => { e.preventDefault(); document.querySelector(`[data-paper="${other}"]`).click(); } },
+    [el('div', { className: 'k', textContent: `Also today in ${name}` }), el('b', { textContent: s.headline }), el('div', { textContent: s.bullets[0] || '' })]);
+}
+function leadCard(s) { const a = card(s); a.classList.add('leadcard'); return a; }
+function card(s) {
+  const a = el('article');
+  if (safeUrl(s.image_url)) { const i = el('img', { className: 'hero', src: safeUrl(s.image_url), alt: '', loading: 'lazy' }); i.onclick = () => i.classList.toggle('on'); a.append(i); }
+  a.append(...(s.breaking ? [el('span', { className: 'tag', textContent: 'Breaking' })] : []), el('h2', { textContent: s.headline }), el('p', { className: 'by', textContent: `By ${s.reporter || 'County Desk'}, ${s.topic}` }), el('ul', {}, s.bullets.map(b => el('li', { textContent: b }))));
+  if (s.has_body) { const more = el('button', { className: 'alt', textContent: 'Read full story' }); more.onclick = async () => { try { const x = await j('/api/story/' + s.id); more.replaceWith(...x.body.split(/\n+/).filter(Boolean).map(p => el('p', { textContent: p }))); } catch { more.textContent = 'Could not load. Try again.'; } }; a.append(more); }
+  if (s.corrections?.length) a.append(el('div', { className: 'corr' }, [el('b', { textContent: 'Correction' }), ...s.corrections.map(c => el('p', { textContent: `${String(c.at).slice(0, 10)}: ${c.note}` }))]));
+  if (safeUrl(s.video_url)) a.append(player(s.video_url, String(s.id)));
+  return a;
+}
+const LABEL = { tender: 'Tender', bursary: 'Bursary', participation: 'Public participation', announcement: 'County announcement', factcheck: 'Fact check', job: 'Job', land: 'Land notice', court: 'Court listing', event: 'Event', lostfound: 'Lost and found', obituary: 'Obituary', notice: 'Public notice', league: 'Sports table', guide: 'Guide', history: 'Our history', transport: 'Transport', utility: 'Water and power', health: 'Health', school: 'School', weather: 'Weather', advisory: 'Farming advice' };
+const note = n => el('div', { className: 'note' }, [el('div', { className: 'k', textContent: LABEL[n.kind] || n.kind }), el('b', { textContent: n.title }), el('p', { textContent: n.body }),
+  n.event_date ? el('small', { textContent: 'Date: ' + String(n.event_date).slice(0, 10) }) : '']);
+
+function bizBlock(all) {
+  const sel = el('select', { ariaLabel: 'Business type' }, opts(['all', ...new Set(all.map(m => m.category))])), list = el('div');
+  const near = el('button', { className: 'alt', textContent: 'Nearest first' });
+  const draw = () => { let r = all.filter(m => sel.value === 'all' || m.category === sel.value); r.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
+    if (st.pos) r = r.map(m => ({ ...m, d: m.latitude ? km(st.pos, m) : null })).sort((a, b) => (a.d ?? 1e9) - (b.d ?? 1e9));
+    list.replaceChildren(...(r.length ? r.map(m => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: m.business_name }), ...(m.verified ? [el('span', { className: 'vbadge', textContent: 'Verified' })] : []), el('div', { textContent: m.tagline + (m.d != null ? ` (${m.d.toFixed(1)} km)` : '') })]),
+      Object.assign(el('a', { className: 'wa', href: `https://wa.me/${m.whatsapp}`, textContent: 'Chat', rel: 'noopener' }), { onclick: () => track('merchant_tap', String(m.id)) })])) : [msg('No businesses listed yet.')])); };
+  sel.onchange = draw; near.onclick = () => navigator.geolocation?.getCurrentPosition(p => { st.pos = [p.coords.latitude, p.coords.longitude]; draw(); }, () => {});
+  draw();
+  return sect('Local businesses', [el('div', { className: 'tools' }, [sel, near]), list, el('a', { className: 'cta', href: '/biashara.html', textContent: 'List your business: KSh 600 for 14 days' })]);
+}
+
+
+const TC = { agriculture: '#4f7f3a', politics: '#34546e', sports: '#e8690f', business: '#7a5c8f', culture: '#a35a6a', tourism: '#3a8085', general: '#6b6a63' };
+const TOWNS = [['Voi', -3.3961, 38.5561], ['Taveta', -3.3980, 37.6760], ['Mwatate', -3.5040, 38.3770], ['Wundanyi', -3.4020, 38.3680]];
+const geo = async u => { try { const r = await fetch(u); return r.ok ? await r.json() : null; } catch { return null; } };
+const polys = g => !g ? [] : g.type === 'FeatureCollection' ? g.features.flatMap(f => polys(f.geometry)) : g.type === 'Feature' ? polys(g.geometry) : g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+const svg = (t, a = {}, k = []) => { const n = document.createElementNS('http://www.w3.org/2000/svg', t); for (const x in a) n.setAttribute(x, a[x]); n.append(...k); return n; };
+const device = () => { let d = localStorage.getItem('dev'); if (!d) { d = crypto.randomUUID ? crypto.randomUUID() : Date.now() + '' + Math.random(); localStorage.setItem('dev', d); } return d; };
+function faceoff(a) {                              // H1/H2: two sides of one argument, with a reader vote
+  const b = a.pair, PN = { review: 'The County Review', roundup: 'County Roundup', both: 'Both papers' }, key = Math.min(a.id, b.id);
+  const holder = el('div', {}, [card(a)]), poll = el('div', { className: 'poll' }), voted = JSON.parse(localStorage.getItem('voted') || '{}');
+  const tabs = el('div', { className: 'voices' }, [a, b].map(x => el('button', { textContent: PN[x.paper] || x.paper, ariaPressed: String(x === a),
+    onclick: e => { tabs.querySelectorAll('button').forEach(z => z.setAttribute('aria-pressed', String(z === e.target))); holder.replaceChildren(card(x)); } })));
+  const show = votes => { const na = votes[a.id] || 0, nb = votes[b.id] || 0, t = na + nb || 1;
+    const bar = (x, n) => el('div', {}, [el('div', { textContent: `${PN[x.paper] || x.paper}: ${Math.round(n / t * 100)}% (${n})` }), el('div', { className: 'bar2' }, [el('i', { style: `width:${Math.round(n / t * 100)}%` })])]);
+    poll.replaceChildren(el('div', { className: 'k', textContent: 'Readers say' }), bar(a, na), bar(b, nb)); };
+  const vote = async id => { try { const r = await fetch('/api/vote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ story_id: id, device: device() }) });
+    const d = await r.json(); if (!r.ok) throw 0; voted[key] = id; localStorage.setItem('voted', JSON.stringify(voted)); show(d.votes); } catch { poll.append(msg('Could not record your vote. Try again.')); } };
+  if (voted[key]) vote(voted[key]);
+  else poll.replaceChildren(el('div', { className: 'k', textContent: 'Which side convinced you?' }), el('div', { className: 'tools' }, [a, b].map(x => el('button', { className: 'alt', textContent: PN[x.paper] || x.paper, onclick: () => vote(x.id) }))));
+  return el('section', { className: 'faceoff' }, [el('h3', { textContent: 'They say, we say' }), tabs, holder, poll]);
+}
+async function noticeList(kinds) {
+  const r = await j(`/api/utility/${st.sub}?kinds=${kinds.join(',')}`);
+  return [...(r.length ? r.map(note) : [msg('Nothing right now.')]), ...(kinds.includes('factcheck') ? [el('a', { className: 'cta', href: '/check.html', textContent: 'Is this true? Ask us' })] : [])];
+}
+async function marketView() {
+  const d = await j(`/api/markets?sub_county=${st.sub}`), today = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()];
+  const q = el('input', { type: 'search', placeholder: 'Search traders or goods', ariaLabel: 'Search traders' }), list = el('div');
+  const draw = () => { const s = q.value.toLowerCase(), r = d.traders.filter(t => !s || (t.name + ' ' + (t.goods || '')).toLowerCase().includes(s));
+    list.replaceChildren(...(r.length ? r.map(t => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: t.name }), el('div', { textContent: [t.goods, t.market].filter(Boolean).join(' · ') })]),
+      el('a', { className: 'wa', href: `https://wa.me/${t.whatsapp}`, textContent: 'Chat', rel: 'noopener' })])) : [msg('No traders found.')])); };
+  q.oninput = draw; draw();
+  return [sect('Market days', d.markets.length ? d.markets.map(m => el('div', { className: 'row' }, [el('b', { textContent: m.name }), el('span', { textContent: m.days.map(x => x === today ? x + ' (today)' : x).join(', ') })])) : [msg('No market days listed yet.')]), sect('Traders', [q, list])];
+}
+async function sportView() {
+  const d = await j(`/api/sport?sub_county=${st.sub}` + (st.league ? `&league=${st.league}` : ''));
+  if (!d.leagues.length) return [msg('No leagues listed yet.')];
+  const lg = el('select', { ariaLabel: 'League' }, opts(d.leagues.map(l => [l.id, l.name]))); lg.value = d.league; lg.onchange = () => { st.league = lg.value; render(); };
+  const when = x => new Date(x).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return [el('div', { className: 'tools' }, [lg]),
+    sect('Next fixtures', d.fixtures.length ? d.fixtures.map(m => el('div', { className: 'row' }, [el('b', { textContent: `${m.home} v ${m.away}` }), el('span', { textContent: when(m.kickoff) + (m.venue ? ', ' + m.venue : '') })])) : [msg('No fixtures.')]),
+    sect('Results', d.results.length ? d.results.map(m => el('div', { className: 'row' }, [el('span', { textContent: `${m.home} ${m.home_goals} - ${m.away_goals} ${m.away}` }), el('span', { textContent: when(m.kickoff) })])) : [msg('No results yet.')]),
+    sect('Table', d.table.length ? d.table.map((t, i) => el('div', { className: 'row' }, [el('b', { textContent: `${i + 1}. ${t.team}` }), el('span', { textContent: `P${t.p} W${t.w} D${t.d} L${t.l} GD${t.gd > 0 ? '+' : ''}${t.gd}  ${t.pts} pts` })])) : [msg('No table yet.')])];
+}
+async function resultsView() {
+  const ex = el('select', { ariaLabel: 'Exam' }, opts([['', 'All exams'], 'KCPE', 'KCSE'])), q = el('input', { type: 'search', placeholder: 'Search a school', ariaLabel: 'Search a school' }), box = el('div');
+  const go = async () => { const p = new URLSearchParams({ sub_county: st.sub }); if (ex.value) p.set('exam', ex.value); if (q.value) p.set('q', q.value);
+    const r = await j('/api/results?' + p);
+    box.replaceChildren(...(r.length ? r.map(s => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: s.school }), el('div', { textContent: `${s.exam} ${s.year}${s.candidates ? ' · ' + s.candidates + ' candidates' : ''}` })]),
+      el('span', { textContent: [s.mean_score != null ? Number(s.mean_score) : null, s.mean_grade].filter(x => x != null && x !== '').join(' · ') })])) : [msg('No results yet.')])); };
+  ex.onchange = q.onchange = go; await go();
+  return [el('div', { className: 'tools' }, [ex, q]), box, msg('School averages only. Individual results are available from the official exam channels.')];
+}
+async function ticketsView() {
+  const when = x => new Date(x).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  let mine = JSON.parse(localStorage.getItem('mytickets') || '[]'), pend = JSON.parse(localStorage.getItem('pendingtix') || '[]');
+  for (const p of [...pend]) { try { const s = await j('/api/tix/status/' + p.pid);                    // payments that finished after the person left the page
+    if (s.status === 'paid') { mine = [...s.tickets.map(t => ({ code: t.code, event: t.event, when: when(t.starts_at) })), ...mine]; pend = pend.filter(x => x.pid !== p.pid); }
+    else if (s.status !== 'pending') pend = pend.filter(x => x.pid !== p.pid); } catch {} }
+  localStorage.setItem('mytickets', JSON.stringify(mine.slice(0, 30))); localStorage.setItem('pendingtix', JSON.stringify(pend));
+  const ev = await j('/api/tix/events');
+  const card = e => {
+    const qty = el('select', { ariaLabel: 'Number of tickets' }, opts(['1', '2', '3', '4', '5'])), name = el('input', { placeholder: 'Your name (optional)', ariaLabel: 'Your name' });
+    const phone = el('input', { placeholder: 'M-Pesa number 2547XXXXXXXX', inputMode: 'numeric', ariaLabel: 'M-Pesa number' }), out = el('div');
+    const done = tix => { localStorage.setItem('mytickets', JSON.stringify([...tix.map(t => ({ code: t.code, event: e.title, when: when(e.starts_at) })), ...JSON.parse(localStorage.getItem('mytickets') || '[]')].slice(0, 30)));
+      out.replaceChildren(...tix.map(t => el('div', { className: 'note' }, [el('div', { className: 'k', textContent: 'Your ticket' }), el('b', { textContent: t.code }), el('small', { textContent: 'Show this code at the door. Take a screenshot.' })]))); };
+    const buy = el('button', { className: 'alt', textContent: e.left < 1 ? 'Sold out' : e.price_kes ? 'Buy with M-Pesa' : 'Get free ticket', disabled: e.left < 1, onclick: async () => {
+      out.replaceChildren(msg('Sending...'));
+      try {
+        const r = await fetch('/api/tix/buy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ event_id: e.id, qty: qty.value, name: name.value, phone: phone.value }) });
+        const d = await r.json(); if (!r.ok) throw new Error(d.error);
+        if (!d.pid) return done(d.codes.map(code => ({ code })));
+        localStorage.setItem('pendingtix', JSON.stringify([{ pid: d.pid }, ...JSON.parse(localStorage.getItem('pendingtix') || '[]')]));
+        out.replaceChildren(msg(d.message));
+        for (let i = 0; i < 30; i++) { await new Promise(z => setTimeout(z, 3000)); const s = await j('/api/tix/status/' + d.pid);
+          if (s.status === 'paid') { localStorage.setItem('pendingtix', JSON.stringify(JSON.parse(localStorage.getItem('pendingtix') || '[]').filter(x => x.pid !== d.pid))); return done(s.tickets); }
+          if (s.status === 'failed') throw new Error('The payment was not completed.');
+          if (s.status === 'underpaid') throw new Error('The amount received was too low. Contact us with your M-Pesa receipt.'); }
+        throw new Error('Still waiting for payment. If you paid, your tickets will appear under My tickets when it is confirmed. Contact us with your M-Pesa receipt if they do not.');
+      } catch (err) { out.replaceChildren(msg(err.message || 'Something went wrong. Try again.')); } } });
+    return el('div', { className: 'note' }, [el('div', { className: 'k', textContent: `${when(e.starts_at)}${e.venue ? ' · ' + e.venue : ''}` }), el('b', { textContent: e.title }), el('p', { textContent: e.description || '' }),
+      el('div', { textContent: `${e.price_kes ? 'KSh ' + e.price_kes : 'Free'} · ${e.left > 0 ? e.left + ' left' : 'sold out'} · by ${e.organiser}` }), el('div', { className: 'tools' }, [qty, name]), phone, buy, out]);
+  };
+  return [...(mine.length ? [sect('My tickets', mine.map(t => el('div', { className: 'note' }, [el('div', { className: 'k', textContent: t.event || 'Ticket' }), el('b', { textContent: t.code }), el('small', { textContent: t.when || '' })])))] : []),
+    sect('Events', ev.length ? ev.map(card) : [msg('No ticketed events right now.')])];
+}
+const FMODE = { matatu: 'Matatu', bus: 'Bus', sgr: 'SGR', boda: 'Boda', taxi: 'Taxi' };
+const AREA = { voi: 'Voi', taveta: 'Taveta', mwatate: 'Mwatate', wundanyi: 'Wundanyi' };
+const dshort = x => x ? new Date(x).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+const thumb = u => safeUrl(u) ? [Object.assign(el('img', { className: 'thumb', src: safeUrl(u), alt: '', loading: 'lazy' }), { onclick: e => e.target.classList.toggle('on') })] : [];
+function roadsBlock(rows) {
+  const lab = { clear: 'Clear', patchy: 'Patchy mist', heavy: 'Heavy fog' };
+  return sect('Roads and fog', rows.map(r => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: r.road }), ...(r.note ? [el('div', { className: 'sub', textContent: r.note })] : [])]), el('span', { className: r.status === 'heavy' ? 'tag' : 'rs ' + r.status, textContent: lab[r.status] })])));
+}
+async function hist(row, c) {                                     // tap a price to see the last weeks
+  const old = row.querySelector('.hist'); if (old) return old.remove();
+  try { const h = await j(`/api/prices/history?sub_county=${st.sub}&commodity=${encodeURIComponent(c)}`);
+    if (h.length < 2) return row.append(el('div', { className: 'hist', textContent: 'The trend builds up as prices are posted each week.' }));
+    const v = h.map(x => x.local), lo = Math.min(...v), hi = Math.max(...v), W = 220, H = 36;
+    const pts = v.map((y, i) => `${(i / (v.length - 1) * W).toFixed(1)},${(hi === lo ? H / 2 : H - 4 - (y - lo) / (hi - lo) * (H - 8)).toFixed(1)}`).join(' ');
+    row.append(el('div', { className: 'hist' }, [svg('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H }, [svg('polyline', { points: pts, fill: 'none', stroke: '#1b5510', 'stroke-width': 2 })]), el('small', { textContent: ` KSh ${v[0]} to ${v[v.length - 1]} over ${v.length} weeks` })]));
+  } catch {}
+}
+async function faresView() {
+  const all = await j('/api/fares'), q = el('input', { type: 'search', placeholder: 'Search a town or sacco', ariaLabel: 'Search fares' }), list = el('div');
+  const draw = () => { const s = q.value.toLowerCase(), r = all.filter(f => !s || `${f.from_place} ${f.to_place} ${f.operator || ''}`.toLowerCase().includes(s));
+    list.replaceChildren(...(r.length ? r.map(f => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: `${f.from_place} to ${f.to_place}` }), el('div', { className: 'sub', textContent: `${FMODE[f.mode]}${f.operator ? ' · ' + f.operator : ''} · updated ${new Date(f.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` })]),
+      el('span', {}, [el('b', { textContent: 'KSh ' + f.fare_kes }), ...(f.whatsapp ? [' ', el('a', { className: 'wa', href: `https://wa.me/${f.whatsapp}`, textContent: 'Book', rel: 'noopener' })] : [])])])) : [msg('No fares match.')])); };
+  q.oninput = draw; draw(); return [q, list];
+}
+async function clinicsView() {
+  const [d, camps] = await Promise.all([j(`/api/facilities?sub_county=${st.sub}`), j(`/api/utility/${st.sub}?kinds=health`)]);
+  const row = f => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: f.name }), ...(f.featured ? [el('span', { className: 'vbadge', textContent: 'Featured' })] : []), el('div', { className: 'sub', textContent: [f.kind, f.open_24h ? 'open 24 hours' : f.hours, f.services].filter(Boolean).join(' · ') })]), ...(f.phone ? [el('a', { className: 'wa', href: 'tel:+' + f.phone, textContent: 'Call' })] : [])]);
+  const open24 = d.filter(f => f.open_24h), rest = d.filter(f => !f.open_24h);
+  return [...(camps.length ? [sect('Medical camps and health notices', camps.map(note))] : []), ...(open24.length ? [sect('Open 24 hours', open24.map(row))] : []), sect('Hospitals, clinics and pharmacies', rest.length ? rest.map(row) : [msg('None listed yet.')])];
+}
+async function obitsView() {
+  const r = await j(`/api/boards?board=memorial&sub_county=${st.sub}`);
+  return [el('a', { className: 'cta', href: '/board.html?b=memorial', textContent: 'Place a memorial notice' }), ...(r.length ? r.map(m => el('div', { className: 'note' }, [...thumb(m.photo_url), el('div', { className: 'k', textContent: m.extra.years || 'In memory' }), el('b', { textContent: m.title }), el('p', { textContent: m.summary }),
+    el('small', { textContent: [m.event_date && 'Funeral ' + dshort(m.event_date), m.venue].filter(Boolean).join(' at ') }),
+    ...(m.contact ? [el('div', {}, [el('small', { textContent: 'Family contact +' + m.contact })])] : []),
+    ...(m.extra.paybill ? [el('div', { className: 'sub', textContent: `Contributions: ${m.extra.paybill_name ? m.extra.paybill_name + ', ' : ''}${m.extra.paybill} (confirmed by us)` })] : [])])) : [msg('No memorial notices right now.')])];
+}
+async function celebView() {
+  const [r, f] = await Promise.all([j(`/api/boards?board=celebration&sub_county=${st.sub}`), j(`/api/feed/${st.sub}`)]);
+  const vend = f.merchants.filter(m => ['bakery', 'decor', 'catering', 'photography', 'florist', 'gifts'].includes(m.category));
+  return [el('a', { className: 'cta', href: '/board.html?b=celebration', textContent: 'Post a celebration' }),
+    ...(r.length ? r.map(c => el('div', { className: 'note' }, [...(c.tier === 'featured' ? thumb(c.photo_url) : []), el('div', { className: 'k', textContent: c.tier === 'featured' ? 'Featured' : 'Celebration' }), el('b', { textContent: c.title }), el('p', { textContent: c.summary }), el('small', { textContent: [c.extra.for_whom, c.event_date && dshort(c.event_date)].filter(Boolean).join(' · ') })])) : [msg('No celebrations posted right now.')]),
+    ...(vend.length ? [sect('Cakes, decor, catering and photography', vend.map(m => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: m.business_name }), ...(m.verified ? [el('span', { className: 'vbadge', textContent: 'Verified' })] : []), el('div', { className: 'sub', textContent: m.tagline })]), el('a', { className: 'wa', href: `https://wa.me/${m.whatsapp}`, textContent: 'Chat', rel: 'noopener' })])))] : [])];
+}
+async function legalView() {
+  const q = el('input', { type: 'search', placeholder: 'Search a name or case number', ariaLabel: 'Search legal notices' }), box = el('div');
+  const go = async () => { const r = await j(`/api/boards?board=legal&sub_county=${st.sub}` + (q.value ? '&q=' + encodeURIComponent(q.value) : ''));
+    box.replaceChildren(...(r.length ? r.map(n => el('div', { className: 'note' }, [el('div', { className: 'k', textContent: n.extra.notice_kind || 'Legal notice' }), el('b', { textContent: n.title }), el('p', { textContent: n.summary }),
+      el('small', { textContent: [n.extra.case_no, n.extra.court, n.extra.order_date && 'Order ' + n.extra.order_date, n.extra.advocate && 'Advocate ' + n.extra.advocate + (n.extra.firm ? ', ' + n.extra.firm : '')].filter(Boolean).join(' · ') }),
+      el('div', { className: 'sub', textContent: `Published ${dshort(n.published_at)}, runs until ${dshort(n.expires_on)}${n.print_edition ? '. Also printed: ' + n.print_edition : ''}${n.contact ? '. Contact +' + n.contact : ''}` })])) : [msg('No legal notices match.')])); };
+  q.onchange = go; await go();
+  return [q, box, msg('Notices appear here only when a court order or lawful process requires publication. Advocates and process servers can submit below.'), el('a', { className: 'cta', href: '/board.html?b=legal', textContent: 'Submit a legal notice (advocates)' })];
+}
+async function lostView() {
+  const [r, old] = await Promise.all([j(`/api/boards?board=lostfound&sub_county=${st.sub}`), j(`/api/utility/${st.sub}?kinds=lostfound`)]);
+  const sel = el('select', { ariaLabel: 'Lost or found' }, opts([['', 'Lost and found'], ['lost', 'Lost'], ['found', 'Found']])), box = el('div');
+  const draw = () => { const f = r.filter(x => !sel.value || x.extra.kind === sel.value);
+    box.replaceChildren(...(f.length ? f.map(x => el('div', { className: 'note' }, [...thumb(x.photo_url), el('div', { className: 'k', textContent: `${(x.extra.kind || '').toUpperCase()} · ${x.extra.category || 'Item'}` }), el('b', { textContent: x.title }), el('p', { textContent: x.summary }), el('small', { textContent: [x.venue, x.event_date && dshort(x.event_date)].filter(Boolean).join(' · ') }),
+      ...(x.contact ? [el('div', { className: 'tools' }, [el('a', { className: 'wa', href: `https://wa.me/${x.contact}`, textContent: 'Chat', rel: 'noopener' })])] : [])])) : [msg('Nothing posted right now.')]), ...old.map(note)); };
+  sel.onchange = draw; draw();
+  return [el('div', { className: 'tools' }, [sel]), box, el('a', { className: 'cta', href: '/board.html?b=lostfound', textContent: 'Post a lost or found item' }), msg('Never share ID numbers in a message. The owner proves ownership when you meet.')];
+}
+async function missingView() {
+  const r = await j(`/api/boards?board=missing&sub_county=${st.sub}`);
+  r.sort((a, b) => (b.extra.case_status === 'urgent') - (a.extra.case_status === 'urgent'));
+  const card = x => el('div', { className: 'note' }, [...thumb(x.photo_url), ...(x.extra.case_status === 'urgent' ? [el('span', { className: 'tag', textContent: 'Urgent' })] : []), el('div', { className: 'k', textContent: `${x.extra.case_status === 'found' ? 'FOUND' : 'MISSING'} · ${x.extra.category || ''}` }), el('b', { textContent: x.title }), el('p', { textContent: x.summary }),
+    el('small', { textContent: [x.extra.age && 'Age ' + x.extra.age, x.extra.gender, x.extra.last_seen_place && 'Last seen: ' + x.extra.last_seen_place, x.extra.last_seen_date && dshort(x.extra.last_seen_date)].filter(Boolean).join(' · ') }),
+    el('div', { className: 'sub', textContent: `Police OB ${x.extra.police_ob}, ${x.extra.police_station}` }),
+    ...(x.contact && x.extra.case_status !== 'found' ? [el('div', { className: 'tools' }, [el('a', { className: 'wa', href: 'tel:+' + x.contact, textContent: 'Call' }), el('a', { className: 'wa', href: 'https://wa.me/' + x.contact, textContent: 'WhatsApp', rel: 'noopener' })])] : [])]);
+  return [msg('Report a missing person to the police first. Please share only notices shown on this page.'), ...(r.length ? r.map(card) : [msg('No missing person notices right now.')]), el('a', { className: 'cta', href: '/board.html?b=missing', textContent: 'Tell us, after reporting to the police' })];
+}
+async function coronerView() {
+  const r = await j(`/api/boards?board=coroner&sub_county=${st.sub}`);
+  return [msg('Official notices of unidentified or unclaimed bodies. If you think you know someone, contact the police station listed. Please do not share details of the deceased online.'),
+    ...(r.length ? r.map(x => el('div', { className: 'note' }, [el('div', { className: 'k', textContent: x.venue || 'Mortuary' }), el('b', { textContent: x.title }), el('p', { textContent: x.summary }), el('small', { textContent: [x.extra.ref && 'Ref ' + x.extra.ref, x.extra.station, x.extra.admitted_on && 'Admitted ' + x.extra.admitted_on].filter(Boolean).join(' · ') }), ...(x.contact ? [el('div', { className: 'sub', textContent: 'Contact +' + x.contact })] : [])])) : [msg('No notices right now.')])];
+}
+async function chamaView() {
+  const r = await j(`/api/boards?board=chama&sub_county=${st.sub}`);
+  return [msg('Groups list themselves. We do not audit any group or vouch for its finances. Meet the officials in person and never send money before you do.'),
+    ...(r.length ? r.map(x => el('div', { className: 'note' }, [...(x.tier === 'featured' ? [el('span', { className: 'vbadge', textContent: 'Featured' })] : []), el('div', { className: 'k', textContent: `${x.extra.kind || 'Group'}${x.extra.members ? ' · about ' + x.extra.members + ' members' : ''}` }), el('b', { textContent: x.title }), el('p', { textContent: x.summary }), el('small', { textContent: [x.extra.meets, x.venue].filter(Boolean).join(' · ') }),
+      ...(x.extra.open !== 'no' && x.contact ? [el('div', { className: 'tools' }, [el('a', { className: 'wa', href: `https://wa.me/${x.contact}?text=${encodeURIComponent('Hello, I saw your group in the County Review and would like to know about joining.')}`, textContent: 'Ask to join', rel: 'noopener' })])] : [el('div', { className: 'sub', textContent: 'Not taking new members' })])])) : [msg('No groups listed yet.')]),
+    el('a', { className: 'cta', href: '/board.html?b=chama', textContent: 'List your group' })];
+}
+async function legalSvcView() {
+  const f = await j(`/api/feed/${st.sub}`), L = ['process-server', 'legal-runner', 'advocate'];
+  const list = f.merchants.filter(m => L.includes(m.category)).sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
+  return [...(list.length ? list.map(m => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: m.business_name }), ...(m.verified ? [el('span', { className: 'vbadge', textContent: 'Verified' })] : []), el('div', { className: 'sub', textContent: `${m.category.replace('-', ' ')} · ${m.tagline}` })]), el('a', { className: 'wa', href: `https://wa.me/${m.whatsapp}`, textContent: 'Chat', rel: 'noopener' })])) : [msg('No legal services listed yet.')]),
+    el('a', { className: 'cta', href: '/biashara.html', textContent: 'List your legal service' })];
+}
+async function eatsView() {
+  const kind = el('select', { ariaLabel: 'Type of place' }, opts([['', 'All places'], ['restaurant', 'Restaurants'], ['cafe', 'Cafes'], ['bar', 'Bars'], ['club', 'Clubs'], ['lodge', 'Lodges']]));
+  kind.value = st.eatKind || ''; kind.onchange = () => { st.eatKind = kind.value; render(); };
+  const q = el('input', { type: 'search', placeholder: 'Compare a price: tusker, nyama choma, chai', ariaLabel: 'Compare prices' }), cmp = el('div');
+  q.onchange = async () => { const r = await j(`/api/menu/compare?sub_county=${st.sub}&q=${encodeURIComponent(q.value)}`);
+    cmp.replaceChildren(...(r.length ? r.map(x => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: x.item }), el('div', { className: 'sub', textContent: `${x.venue} · checked ${new Date(x.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` })]), el('b', { textContent: 'KSh ' + x.price_kes })])) : [msg('No matches.')])); };
+  const v = await j(`/api/venues?sub_county=${st.sub}` + (st.eatKind ? `&kind=${st.eatKind}` : ''));
+  const card = x => { const menu = el('div');
+    return el('div', { className: 'note' }, [...(x.promo ? [el('div', { className: 'k', textContent: 'Tonight: ' + x.promo })] : []), el('b', { textContent: x.name }), el('div', { className: 'sub', textContent: [x.kind, x.hours, x.address].filter(Boolean).join(' · ') }), el('p', { textContent: x.description || '' }), menu,
+      el('div', { className: 'tools' }, [el('button', { className: 'alt', textContent: 'See menu', onclick: async () => { if (menu.childElementCount) return menu.replaceChildren(); const m = await j(`/api/venues/${x.id}/menu`);
+        menu.replaceChildren(...(m.length ? m.map(i => el('div', { className: 'row' }, [el('span', { textContent: i.item }), el('b', { textContent: 'KSh ' + i.price_kes })])) : [msg('No menu yet.')]), el('small', { textContent: x.menu_verified_at ? 'Menu checked ' + new Date(x.menu_verified_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + '. Prices can change.' : '' })); } }), ...(x.phone ? [el('a', { className: 'wa', href: 'tel:+' + x.phone, textContent: 'Call' })] : [])])]); };
+  return [el('div', { className: 'tools' }, [kind, q]), cmp, ...(v.length ? v.map(card) : [msg('No places listed yet.')]), msg('Alcohol is for adults 18 and over. Please drink responsibly and never drive after drinking.')];
+}
+const V = {
+  async today() {
+    const [f, u, ld, od, rd, fr, fc] = await Promise.all([j(`/api/feed/${st.sub}`), j(`/api/utility/${st.sub}?kinds=transport,utility,health,school,weather,advisory`), j('/api/lead?paper=' + st.paper).catch(() => ({})), j('/api/lead?paper=' + (st.paper === 'review' ? 'roundup' : 'review')).catch(() => ({})), j('/api/roads').catch(() => []), j('/api/fares').catch(() => []), j(`/api/facilities?sub_county=${st.sub}&open24=1`).catch(() => [])]);
+    const prices = f.prices.map(p => { const d = p.benchmark_price ? Math.round((p.local_price - p.benchmark_price) / p.benchmark_price * 100) : null;
+      const row = el('div', { className: 'row pr', onclick: () => hist(row, p.commodity) }, [el('b', { textContent: p.commodity }), el('span', {}, [`KSh ${Number(p.local_price)} `, d == null ? '' : el('span', { className: d > 0 ? 'up' : d < 0 ? 'down' : '', textContent: d === 0 ? 'same as Mombasa' : `${d > 0 ? '▲' : '▼'} ${Math.abs(d)}% vs Mombasa` })])]); return row; });
+    const out = [...(ld.id ? [leadCard(ld)] : []), ...(od.id && od.id !== ld.id ? [otherSide(od)] : []), ...(rd.length ? [roadsBlock(rd)] : []), sect('Market prices today', prices.length ? prices : [msg('Prices not posted yet.')])];
+    [['Roads and transport', ['transport']], ['Water and power', ['utility']], ['Clinics and health', ['health']], ['School dates', ['school']], ['Weather and farming', ['weather', 'advisory']]]
+      .forEach(([t, ks]) => { const r = u.filter(n => ks.includes(n.kind)); if (r.length) out.push(sect(t, r.map(note))); });
+    const mine = fr.filter(x => `${x.from_place} ${x.to_place}`.toLowerCase().includes(st.sub)).slice(0, 5);
+    if (mine.length) out.push(sect('Transport fares', [...mine.map(x => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: `${x.from_place} to ${x.to_place}` }), el('div', { className: 'sub', textContent: FMODE[x.mode] + (x.operator ? ' · ' + x.operator : '') })]), el('b', { textContent: 'KSh ' + x.fare_kes })])), el('a', { className: 'cta', href: '#', textContent: 'All fares', onclick: e => { e.preventDefault(); st.kind = 'fares'; document.querySelector('[data-view="notices"]').click(); } })]));
+    if (fc.length) out.push(sect('Open 24 hours', fc.slice(0, 3).map(x => el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: x.name }), el('div', { className: 'sub', textContent: x.kind })]), ...(x.phone ? [el('a', { className: 'wa', href: 'tel:+' + x.phone, textContent: 'Call' })] : [])]))));
+    out.push(bizBlock(f.merchants), el('a', { className: 'cta', href: '/tip.html', textContent: 'Send us a tip' }), el('a', { className: 'cta', href: '/advertise.html', textContent: 'Advertise with us' })); return out;
+  },
+  async news() {
+    const tp = el('select', { ariaLabel: 'Topic' }, opts([['', 'All topics'], 'politics', 'sports', 'business', 'culture', 'tourism', 'agriculture']));
+    tp.value = st.topic; tp.onchange = () => { st.topic = tp.value; render(); };
+    const q = new URLSearchParams({ paper: st.paper, ...(st.topic && { topic: st.topic }) });
+    const d = await j(`/api/feed/${st.sub}?${q}`);
+    const dl = el('a', { className: 'cta', href: '/issues/latest.pdf', download: '', textContent: "Download this month's issue (free)", onclick: () => track('issue_download', st.paper) });
+    const seen = new Set(), items = d.stories.flatMap(s => { if (seen.has(s.id)) return []; if (s.pair) { seen.add(s.pair.id); return [faceoff(s)]; } return [card(s)]; });
+    const win = await j('/api/votes/week').catch(() => null);
+    return [el('div', { className: 'tools' }, [tp]), dl, ...(win?.headline ? [el('div', { className: 'note' }, [el('div', { className: 'k', textContent: "Readers' pick this week" }), el('b', { textContent: win.headline })])] : []), ...(items.length ? items : [msg('No stories here yet.')]), el('a', { className: 'cta', href: '/tip.html', textContent: 'Send us a tip' })];
+  },
+  async notices() {
+    const kinds = ['tender', 'job', 'land', 'court', 'event', 'lostfound', 'obituary', 'notice', 'factcheck', 'bursary', 'participation', 'announcement'];
+    const KS = [['', 'All notices'], ['tender', 'Tenders'], ['job', 'Jobs'], ['bursary', 'Bursaries'], ['participation', 'Public participation'], ['announcement', 'County announcements'], ['land', 'Land notices'], ['court', 'Court listings'], ['legal', 'Legal notices'], ['legalsvc', 'Legal services directory'], ['event', 'Events'], ['tickets', 'Events and tickets'], ['fares', 'Transport fares'], ['clinics', 'Clinics and pharmacies'], ['eats', 'Food, drink and nightlife'], ['obits', 'Obituaries and memorials'], ['celebrations', 'Celebrations'], ['lostfound', 'Lost and found'], ['missing', 'Missing persons'], ['coroner', 'Unclaimed bodies notices'], ['chamas', 'Chamas and groups'], ['notice', 'Public notices'], ['factcheck', 'Fact checks'], ['market', 'Market days and traders'], ['sport', 'Sport'], ['results', 'School results']];
+    const k = el('select', { ariaLabel: 'Section' }, opts(KS));
+    k.value = st.kind || ''; k.onchange = () => { st.kind = k.value; render(); };
+    const VIEWS = { tickets: ticketsView, market: marketView, sport: sportView, results: resultsView, fares: faresView, clinics: clinicsView, obits: obitsView, celebrations: celebView, legal: legalView, legalsvc: legalSvcView, lostfound: lostView, missing: missingView, coroner: coronerView, chamas: chamaView, eats: eatsView };
+    const body = VIEWS[st.kind] ? await VIEWS[st.kind]() : await noticeList(st.kind ? [st.kind] : kinds);
+    return [el('div', { className: 'tools' }, [k]), ...body];
+  },
+  async learn() {
+    const lg = el('select', { ariaLabel: 'Language' }, opts([['en', 'English'], ['sw', 'Kiswahili']])); lg.value = st.lang;
+    lg.onchange = () => { st.lang = lg.value; localStorage.setItem('lang', st.lang); render(); };
+    const q = el('input', { type: 'search', placeholder: 'Search stories and notices', ariaLabel: 'Search' }), res = el('div');
+    q.onchange = async () => { const d = await j('/api/search?q=' + encodeURIComponent(q.value));
+      res.replaceChildren(...[...d.stories.map(s => el('div', { className: 'note' }, [el('b', { textContent: s.headline })])), ...d.notices.map(note)], ...(d.stories.length + d.notices.length ? [] : [msg('Nothing found.')])); };
+    const g = await j(`/api/utility/${st.sub}?kinds=guide,history&lang=${st.lang}`);
+    return [el('div', { className: 'tools' }, [lg, q]), res, sect('How-to guides and our history', g.length ? g.map(note) : [msg('No guides yet.')])];
+  },
+  async map() {
+    const range = el('select', { ariaLabel: 'Time period' }, opts([['1', 'Today'], ['7', 'Last 7 days'], ['30', 'Last 30 days'], ['365', 'Last year'], ['0', 'All time']]));
+    range.value = st.range ?? '30';
+    const from = el('input', { type: 'date', ariaLabel: 'From date', value: st.from || '' }), to = el('input', { type: 'date', ariaLabel: 'To date', value: st.to || '' });
+    range.onchange = () => { st.range = range.value; st.from = st.to = ''; render(); };
+    from.onchange = to.onchange = () => { st.from = from.value; st.to = to.value; render(); };
+    const iso = d => d.toISOString().slice(0, 10), days = Number(st.range ?? 30);
+    const q = new URLSearchParams(); const f = st.from || (days ? iso(new Date(Date.now() - days * 864e5)) : ''); if (f) q.set('from', f); if (st.to) q.set('to', st.to);
+    const [data, outline, subs] = await Promise.all([j('/api/map?' + q), geo('/taita-taveta.geojson'), geo('/subcounties.geojson')]);
+    let [W, E, S, N] = [37.55, 39.2, -4.1, -2.8];                       // used until the real boundary file is added
+    const cp = polys(outline); if (cp.length) { const p = cp.flat(2); W = Math.min(...p.map(x => x[0])); E = Math.max(...p.map(x => x[0])); S = Math.min(...p.map(x => x[1])); N = Math.max(...p.map(x => x[1])); }
+    const c = Math.cos((N + S) / 2 * Math.PI / 180), SC = 1000 / ((E - W) * c), H = (N - S) * SC;   // same scale on both axes keeps the shape true
+    const X = lo => (lo - W) * c * SC, Y = la => (N - la) * SC;
+    const path = ps => ps.flatMap(pg => pg.map(r => 'M' + r.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('L') + 'Z')).join('');
+    const m = svg('svg', { viewBox: `-20 -20 1040 ${H + 40}`, class: 'map', role: 'img', 'aria-label': 'Map of stories in Taita Taveta' });
+    for (let lo = Math.ceil(W * 4) / 4; lo <= E; lo += .25) m.append(svg('line', { x1: X(lo), x2: X(lo), y1: 0, y2: H, stroke: '#eee' }), svg('text', { x: X(lo) + 3, y: H - 4, 'font-size': 14, fill: '#999' }, [lo.toFixed(2) + '°E']));
+    for (let la = Math.ceil(S * 4) / 4; la <= N; la += .25) m.append(svg('line', { y1: Y(la), y2: Y(la), x1: 0, x2: 1000, stroke: '#eee' }), svg('text', { x: 3, y: Y(la) - 3, 'font-size': 14, fill: '#999' }, [Math.abs(la).toFixed(2) + '°S']));
+    if (cp.length) m.append(svg('path', { d: path(cp), fill: '#f2f7ee', stroke: '#1b5e20', 'stroke-width': 3, 'fill-rule': 'evenodd' }));
+    else m.append(svg('rect', { x: 0, y: 0, width: 1000, height: H, fill: 'none', stroke: '#1b5e20', 'stroke-dasharray': '8 6' }), svg('text', { x: 12, y: 24, 'font-size': 16, fill: '#b00020' }, ['Boundary file not added yet']));
+    (subs?.features || []).forEach(fe => m.append(svg('path', { d: path(polys(fe)), fill: 'none', stroke: '#8bb08b', 'stroke-width': 1.5 })));
+    TOWNS.forEach(t => m.append(svg('text', { x: X(t[2]) + 8, y: Y(t[1]) - 8, 'font-size': 20, 'font-weight': 700, fill: '#333' }, [t[0]]), svg('rect', { x: X(t[2]) - 4, y: Y(t[1]) - 4, width: 8, height: 8, fill: '#333' })));
+    const info = el('div');
+    data.merchants.forEach(b => { const g = svg('g', { style: 'cursor:pointer' }, [svg('rect', { x: X(b.longitude) - 8, y: Y(b.latitude) - 8, width: 16, height: 16, fill: '#e8700f', stroke: '#fff', 'stroke-width': 2, transform: `rotate(45 ${X(b.longitude)} ${Y(b.latitude)})` })]);
+      g.onclick = () => info.replaceChildren(el('div', { className: 'row' }, [el('div', {}, [el('b', { textContent: b.business_name }), el('div', { textContent: b.tagline })]), el('a', { className: 'wa', href: `https://wa.me/${b.whatsapp}`, textContent: 'Chat', rel: 'noopener' })])); m.append(g); });
+    data.stories.forEach(s => { const x = X(s.longitude), y = Y(s.latitude); if (x < 0 || x > 1000 || y < 0 || y > H) return;
+      const g = svg('g', { style: 'cursor:pointer' }, [svg('circle', { cx: x, cy: y, r: 30, fill: 'transparent' }), svg('circle', { cx: x, cy: y, r: 15, fill: TC[s.topic] || TC.general, stroke: '#fff', 'stroke-width': 3 })]);
+      g.onclick = () => { info.replaceChildren(card(s), el('p', { className: 'by', textContent: `${s.place_name ? s.place_name + ', ' : ''}${String(s.created_at).slice(0, 10)}` })); info.scrollIntoView({ behavior: 'smooth' }); }; m.append(g); });
+    const legend = el('div', { className: 'legend' }, Object.entries(TC).map(([k, v]) => el('span', {}, [el('i', { style: `background:${v}` }), k])));
+    return [el('div', { className: 'tools' }, [range]), el('div', { className: 'tools' }, [from, to]), m, legend, msg(`${data.stories.length} stories in this period. Tap a pin to read it.`), info];
+  },
+  async shows() {
+    const tp = el('select', { ariaLabel: 'Show' }, opts([['', 'All shows'], 'politics', 'sports', 'business', 'culture', 'tourism', 'agriculture', 'general']));
+    tp.value = st.show || ''; tp.onchange = () => { st.show = tp.value; render(); };
+    const e = await j('/api/podcasts' + (st.show ? `?topic=${st.show}` : ''));
+    return [el('div', { className: 'tools' }, [tp]), ...(e.length ? e.map(x => el('article', {}, [player(x.video_url, 'ep' + x.id, x.thumb_url), el('h2', { textContent: x.title }), el('p', { className: 'by', textContent: x.topic })])) : [msg('No episodes yet.')])];
+  }
+};
+async function render() {
+  $('#voices').hidden = !['today', 'news'].includes(st.view);
+  try { $('#view').replaceChildren(...await V[st.view]()); }
+  catch { $('#view').replaceChildren(msg('No connection and nothing saved yet. Open this section once with data to read it offline.')); }
+}
+async function alerts() { try { const a = await j('/api/alerts'); $('#alert').hidden = !a.length;
+  $('#alert').replaceChildren(el('span', { className: 'tag', textContent: 'Alert' }), el('span', { textContent: a.map(x => `${x.area ? x.area + ': ' : ''}${x.title}. ${x.body}`).join('  ') })); } catch {} }
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { st.view = b.dataset.view; document.querySelectorAll('nav button').forEach(x => x.toggleAttribute('aria-current', x === b)); render(); });
+document.querySelectorAll('[data-paper]').forEach(b => b.onclick = () => { st.paper = b.dataset.paper; $('#logo').src = `/logo-${st.paper}.png`; $('#logo').alt = b.textContent; document.querySelectorAll('[data-paper]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); render(); });
+$('#sub').onchange = e => { st.sub = e.target.value; localStorage.setItem('sub', st.sub); render(); };
+let ev; addEventListener('beforeinstallprompt', e => { e.preventDefault(); ev = e; $('#install').style.display = 'block'; });
+$('#install').onclick = async () => { ev?.prompt(); await ev?.userChoice; track('install', 'pwa'); $('#install').style.display = 'none'; };
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+$('#date').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+alerts(); render();
+</script></body></html>

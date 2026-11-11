@@ -1,1 +1,43 @@
-
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Place a notice</title><link rel="stylesheet" href="/style.css"></head>
+<body class="form page"><div class="mast"><img src="/logo-review.png" alt="The County Review"><img src="/logo-roundup.png" alt="County Roundup"></div>
+<h1 id="h"></h1><p id="intro"></p><div id="f"></div>
+<input id="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+<button id="go" type="button">Send for review</button><div id="m" hidden role="status"></div>
+<script>
+const $=s=>document.querySelector(s),el=(t,p={},k=[])=>{const n=Object.assign(document.createElement(t),p);n.append(...k);return n};
+const B=['memorial','celebration','legal','lostfound','missing','chama'].includes(new URLSearchParams(location.search).get('b'))?new URLSearchParams(location.search).get('b'):'memorial';
+const AREAS=[['voi','Voi'],['taveta','Taveta'],['mwatate','Mwatate'],['wundanyi','Wundanyi']];
+let FEES={},photo=null;
+const F={ memorial:{h:'Place a memorial notice',intro:'Tell the community about the passing of a loved one and the funeral arrangements. Our team phones the family contact before anything is published. Contribution numbers show only after we have confirmed them with you.',
+  f:[['title','Name of the person','text'],['years','Years (for example 1944 to 2026)','text','ex'],['summary','A short tribute (up to 300 characters)','area'],['event_date','Funeral date','date'],['venue','Funeral venue','text'],['contact_phone','Family or committee phone (2547XXXXXXXX)','tel'],['paybill','Contribution paybill or till number (optional)','text','ex'],['paybill_name','Name on that number (optional)','text','ex']],photo:true},
+ celebration:{h:'Post a celebration',intro:'Birthdays, graduations, weddings and anniversaries. A basic notice is a short line. A featured notice adds a photo and a longer message, and is pinned at the top for a week.',
+  f:[['title','Headline (for example Happy 80th, Mzee Mwangeka)','text'],['for_whom','Occasion','text','ex'],['summary','Your message','area'],['event_date','Date (optional)','date']],photo:true,tier:true},
+ legal:{h:'Submit a legal notice',intro:'For advocates and authorised process servers, where a court order or lawful process requires publication. Our team phones you to verify the order before publishing. This notice supports, and does not replace, the methods the court has ordered.',
+  f:[['notice_kind','Kind of notice (for example Substituted service of court papers)','text','ex'],['title','Notice heading','text'],['summary','Full text of the notice','area'],['case_no','Case number','text','ex'],['court','Court','text','ex'],['order_date','Date of the court order','date','ex'],['advocate','Advocate or process server name','text','ex'],['firm','Firm (optional)','text','ex'],['contact_phone','Your phone (2547XXXXXXXX)','tel']]},
+ lostfound:{h:'Post a lost or found item',intro:'Describe the item and where it was lost or found. Do not type ID numbers or other private numbers: any long number is hidden automatically. The owner proves ownership when you meet. It is free, and our team checks each notice before it appears.',
+  f:[['kind','Lost or found?','sel:lost|found','ex'],['category','Type of item','sel:ID or licence|Certificate|Phone or electronics|Keys|Wallet or bag|Other','ex'],['title','Short title (for example Black Nokia phone)','text'],['summary','Description (at least 20 characters)','area'],['venue','Where','text'],['event_date','Date','date'],['contact_phone','Your phone (2547XXXXXXXX)','tel']],photo:true},
+ missing:{h:'Tell us about a missing person',intro:'Report to the police first. We publish only after our team phones to check, we never show a photo without consent, and we remove it the moment the person is found. Do not include a home address or ID numbers.',
+  f:[['category','Adult or child','sel:adult|child','ex'],['title','Name (or Child, age 7, if you prefer)','text'],['age','Age','text','ex'],['gender','Gender','sel:female|male','ex'],['summary','Description: height, clothing, marks (up to 600 characters)','area'],['last_seen_place','Last seen where','text','ex'],['last_seen_date','Last seen date','date','ex'],['police_ob','Police OB number','text','ex'],['police_station','Police station','text','ex'],['contact_phone','Contact phone (family or police, 2547XXXXXXXX)','tel'],['photo_consent','May we show a photo? Choose yes only if the parent or guardian agrees, or the police ask us to','sel:no|yes','ex']],photo:true},
+ chama:{h:'List your group',intro:'For savings groups, table banking, merry-go-rounds and investment groups. Groups list themselves and we do not audit or vouch for any group. Our team phones the contact before the listing appears. It is free.',
+  f:[['title','Group name','text'],['kind','Type of group','sel:savings|table banking|merry-go-round|investment|other','ex'],['members','About how many members','text','ex'],['meets','When you meet (for example first Saturday, 2 pm)','text','ex'],['venue','Where you meet','text'],['open','Open to new members?','sel:yes|no','ex'],['summary','What the group does (up to 300 characters)','area'],['contact_phone','Chairperson or secretary phone (2547XXXXXXXX)','tel']]}};
+const C=F[B];$('#h').textContent=C.h;$('#intro').textContent=C.intro;
+const box=$('#f');
+box.append(el('label',{htmlFor:'area',textContent:'Area'}),el('select',{id:'area'},[el('option',{value:'',textContent:'Whole county'}),...AREAS.map(a=>el('option',{value:a[0],textContent:a[1]}))]));
+C.f.forEach(([id,label,type])=>{box.append(el('label',{htmlFor:id,textContent:label}),type==='area'?el('textarea',{id,rows:id==='summary'&&B==='legal'?9:5}):type.startsWith('sel:')?el('select',{id},type.slice(4).split('|').map(o=>el('option',{value:o,textContent:o}))):el('input',{id,type:type==='tel'?'text':type,inputMode:type==='tel'?'numeric':undefined}))});
+if(C.tier){box.append(el('label',{textContent:'Type'}),el('select',{id:'tier'},[el('option',{value:'basic',textContent:'Basic: a short line'}),el('option',{value:'featured',textContent:'Featured: photo, longer message, pinned for a week'})]))}
+if(C.photo)box.append(el('label',{htmlFor:'ph',textContent:'Photo (optional'+(C.tier?', featured only':'')+')'}),el('input',{id:'ph',type:'file',accept:'image/*'}));
+box.append(el('div',{id:'payrow'}));
+$('#ph')&&($('#ph').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const b=await createImageBitmap(f),sc=Math.min(1,1280/Math.max(b.width,b.height)),cv=document.createElement('canvas');cv.width=Math.round(b.width*sc);cv.height=Math.round(b.height*sc);cv.getContext('2d').drawImage(b,0,0,cv.width,cv.height);photo=await new Promise(r=>cv.toBlob(r,'image/jpeg',.78))}catch{photo=null}});
+const fee=()=>B==='celebration'?($('#tier').value==='featured'?FEES.celebration_featured:FEES.celebration_basic):FEES[B]||0;
+function pay(){const n=fee();$('#payrow').replaceChildren(...(n>0?[el('label',{htmlFor:'pp',textContent:'Fee: KSh '+n+'. M-Pesa number to pay from (2547XXXXXXXX)'}),el('input',{id:'pp',inputMode:'numeric'})]:[el('p',{className:'msg',textContent:'There is no fee for this notice.'})]))}
+fetch('/api/boards/fees').then(r=>r.json()).then(d=>{FEES=d;pay();$('#tier')&&($('#tier').onchange=pay)}).catch(()=>pay());
+$('#go').onclick=async()=>{const m=$('#m');m.hidden=false;m.className='';m.textContent='Sending...';
+ try{const ex={},body={board:B,sub_county:$('#area').value,website:$('#website').value,pay_phone:$('#pp')?.value||''};
+  C.f.forEach(([id,,,x])=>{const v=$('#'+id).value;if(x==='ex')ex[id]=v;else body[id]=v});body.extra=ex;if(C.tier)body.tier=$('#tier').value;
+  const r=await fetch('/api/boards/submit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error);
+  if(photo&&d.id)await fetch(`/api/boards/${d.id}/photo`,{method:'POST',headers:{'content-type':'image/jpeg','x-board-token':d.token},body:photo}).catch(()=>{});
+  m.textContent=d.message;if(B==='legal'){m.append(el('p',{},['Keep this link. It opens your certificate of publication once the notice is published: ',el('a',{href:`/certificate.html?id=${d.id}&t=${d.token}`,textContent:'certificate link'})]))}
+  if(B==='lostfound'){m.append(el('p',{},['When the item is returned, please close your notice: ',el('a',{href:`/resolve.html?id=${d.id}&t=${d.token}`,textContent:'close this notice'})]))}
+  $('#go').hidden=true}catch(e){m.className='e';m.textContent=e.message||'Something went wrong. Try again.'}};
+</script></body></html>

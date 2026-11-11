@@ -1,1 +1,15 @@
-
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Insights</title><link rel="stylesheet" href="/style.css"></head>
+<body class="form page"><div class="mast"><img src="/logo-review.png" alt="The County Review"><img src="/logo-roundup.png" alt="County Roundup"></div>
+<h1>Taita Taveta insights</h1><p>Weekly market prices, reader attention, story topics and fact-checks for planners, NGOs and businesses. Aggregated and anonymous.</p>
+<label for="k">Your subscription key</label><input id="k" type="password"><button id="go" type="button">Open insights</button><div id="m" hidden role="status"></div><div id="out"></div>
+<script>
+const $=s=>document.querySelector(s),el=(t,p={},k=[])=>{const n=Object.assign(document.createElement(t),p);n.append(...k);return n};
+const csv=rows=>{const h=Object.keys(rows[0]||{});return [h.join(','),...rows.map(r=>h.map(k=>JSON.stringify(r[k]??'')).join(','))].join('\n')};
+const table=(title,rows,file)=>{const s=el('section',{},[el('h3',{textContent:title})]);if(!rows.length){s.append(el('p',{className:'msg',textContent:'No data yet.'}));return s}
+ const h=Object.keys(rows[0]);s.append(el('div',{style:'overflow-x:auto'},[el('table',{style:'border-collapse:collapse;font-size:14px;width:100%'},[el('tr',{},h.map(x=>el('th',{textContent:x,style:'text-align:left;padding:4px 8px;border-bottom:2px solid #1a1a17'}))),...rows.slice(0,60).map(r=>el('tr',{},h.map(k=>el('td',{textContent:/^\d{4}-\d\d-\d\dT/.test(String(r[k]))?String(r[k]).slice(0,10):String(r[k]??''),style:'padding:4px 8px;border-bottom:1px solid #d9d6cd'}))))])]));
+ s.append(el('button',{className:'alt',textContent:'Download CSV',onclick:()=>{const a=el('a',{href:URL.createObjectURL(new Blob([csv(rows)],{type:'text/csv'})),download:file+'.csv'});a.click()}}));return s};
+$('#go').onclick=async()=>{const m=$('#m');m.hidden=false;m.className='';m.textContent='Loading...';
+ try{const r=await fetch('/api/insights/data',{headers:{'x-api-key':$('#k').value.trim()}}),d=await r.json();if(!r.ok)throw new Error(d.error);m.textContent=d.org+'. '+d.note;
+  $('#out').replaceChildren(table('Market prices by week (KSh)',d.prices,'prices'),table('Reader attention by week',d.attention,'attention'),table('Stories published by topic',d.topics,'topics'),table('Fact-checks by verdict',d.fact_checks,'fact-checks'))}catch(e){m.className='e';m.textContent=e.message||'Could not load.'}};
+</script></body></html>

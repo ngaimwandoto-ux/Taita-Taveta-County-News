@@ -1,1 +1,345 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex"><title>Newsroom desk</title>
+<link rel="stylesheet" href="/style.css">
+</head><body class="form page">
+<div class="mast"><img src="/logo-review.png" alt="The County Review"><img src="/logo-roundup.png" alt="County Roundup"></div>
+<h1>Newsroom desk</h1>
+<section id="login"><label for="key">Your personal key</label><input id="key" type="password" autocomplete="current-password"><label class="chk"><input type="checkbox" id="keep"> Keep me signed in on this phone (needed to write offline)</label><button id="go">Sign in</button></section>
+<div id="msg" class="note" hidden role="status"></div>
+<main id="app" hidden>
+  <p>Signed in as <b id="who"></b> <button class="alt" id="signout" style="width:auto;padding:4px 10px;margin:0 0 0 8px">Sign out</button></p>
+  <section id="agree" hidden>
+    <h2>Contributor agreement</h2>
+    <p>I confirm that my reports are accurate and my own work, that I will not copy other people's material, that editors may edit or reject my stories, and that fees are paid per published item as agreed with my editor. Placeholder text: the final agreement must be reviewed by a lawyer.</p>
+    <label class="chk"><input type="checkbox" id="ag"> I accept the agreement</label><button id="agbtn">Continue</button>
+  </section>
+  <div id="work" hidden>
+    <div class="tabs"><button class="alt" data-tab="write">Write</button><button class="alt" data-tab="queue">Stories</button><button class="alt" data-tab="tips" id="tTips">Tips</button><button class="alt" data-tab="boards" id="tBoards">Boards</button><button class="alt" data-tab="comm" id="tComm">Community</button><button class="alt" data-tab="pub" id="tPub">Published</button><button class="alt" data-tab="money" id="tMoney">Money</button><button class="alt" data-tab="print" id="tPrint">Print</button><button class="alt" data-tab="people" id="tPeople">People</button><button class="alt" data-tab="tools" id="tTools">Tools</button></div>
 
+    <section id="write">
+      <div id="outbox"></div>
+      <div id="subRow"><label for="sub">Sub-county</label><select id="sub"><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option></select></div>
+      <div class="row"><div><label for="paper">Paper</label><select id="paper"><option value="both">Both</option><option value="review">Review</option><option value="roundup">Roundup</option></select></div>
+      <div><label for="place">Goes to</label><select id="place"><option value="daily">Daily feed</option><option value="issue">Main issue</option></select></div></div>
+      <label for="topic">Topic</label><select id="topic"><option>general</option><option>politics</option><option>sports</option><option>business</option><option>culture</option><option>tourism</option><option>agriculture</option></select>
+      <label for="head">Headline <small id="hc">0/150</small></label><input id="head" maxlength="150">
+      <label for="b1">Point 1 <small>(max 160)</small></label><textarea id="b1" rows="2" maxlength="160"></textarea>
+      <label for="b2">Point 2</label><textarea id="b2" rows="2" maxlength="160"></textarea>
+      <label for="b3">Point 3</label><textarea id="b3" rows="2" maxlength="160"></textarea>
+      <label for="body">Full story <small>(optional: for the printed supplement and "Read full story")</small></label><textarea id="body" rows="6" maxlength="4000"></textarea>
+      <label for="lat">Location <small>(tap the button, or leave blank for the town centre)</small></label>
+      <button class="alt" id="gps" type="button">Use my location</button>
+      <div class="row"><input id="lat" inputmode="decimal" placeholder="Latitude"><input id="lon" inputmode="decimal" placeholder="Longitude"></div>
+      <label for="plc">Place name <small>(optional)</small></label><input id="plc" maxlength="80">
+      <label for="photo">Photo <small>(from your phone)</small></label><input id="photo" type="file" accept="image/*"><input id="img" type="url" placeholder="or paste a photo link">
+      <label for="vid">Video link <small>(optional)</small></label><input id="vid" type="url">
+      <button id="send">Submit story</button>
+    </section>
+
+    <section id="queue" hidden><h2 id="qh">Stories</h2><div id="list"></div></section>
+
+    <section id="tips" hidden><h2>Reader tips</h2><div id="tlist"></div></section>
+
+    <section id="comm" hidden>
+      <h2>Door check-in</h2><label for="cc">Ticket code</label><input id="cc" autocapitalize="characters"><button id="ci">Check in</button>
+      <div id="paidBox" hidden><input id="cr" placeholder="M-Pesa receipt, only if a payment is missing"><button id="cmp" class="alt">Mark this ticket paid</button></div>
+      <label for="ca">Area</label><select id="ca"><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option></select>
+      <h2>Market days</h2><label for="mn">Market name</label><input id="mn"><label>Days</label><div id="md"></div><label for="mo">Notes <small>(optional)</small></label><input id="mo"><button id="addm" class="alt">Add market</button><div id="mlist2"></div>
+      <h2>Traders</h2><label for="tn">Name</label><input id="tn"><label for="tg">What they sell</label><input id="tg"><label for="tw">WhatsApp <small>(2547XXXXXXXX, with their consent)</small></label><input id="tw" inputmode="numeric"><label for="tm">Market</label><select id="tm"></select><button id="addt" class="alt">Add trader</button><div id="tlist2"></div>
+      <h2>Leagues</h2><label for="ln">League name</label><input id="ln"><div class="row"><div><label for="ls">Sport</label><input id="ls" value="football"></div><div><label for="lsc">Covers</label><select id="lsc"><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option><option value="all">Whole county (staff)</option></select></div></div><button id="addl" class="alt">Create league</button>
+      <h2>Fixtures and scores</h2><label for="lg">League</label><select id="lg"></select>
+      <div class="row"><div><label for="fh">Home</label><input id="fh"></div><div><label for="fa">Away</label><input id="fa"></div></div>
+      <div class="row"><div><label for="fk">Kickoff</label><input id="fk" type="datetime-local"></div><div><label for="fv">Venue</label><input id="fv"></div></div><button id="addf" class="alt">Add fixture</button><div id="flist"></div>
+      <h2>School results (averages only)</h2>
+      <div class="row"><div><label for="re">Exam</label><select id="re"><option>KCPE</option><option>KCSE</option></select></div><div><label for="ry">Year</label><input id="ry" inputmode="numeric" value="2026"></div></div>
+      <label for="rt">One school per line <small>(school, candidates, mean score, mean grade)</small></label><textarea id="rt" rows="5"></textarea><button id="impr" class="alt">Import for this area (replaces earlier import)</button>
+      <h2>Transport fares</h2>
+      <div class="row"><div><label for="kfr">From</label><input id="kfr"></div><div><label for="kto">To</label><input id="kto"></div></div>
+      <div class="row"><div><label for="kmo">Mode</label><select id="kmo"><option value="matatu">Matatu</option><option value="bus">Bus</option><option value="sgr">SGR</option><option value="boda">Boda</option><option value="taxi">Taxi</option></select></div><div><label for="kfa">Fare in KSh</label><input id="kfa" inputmode="numeric"></div></div>
+      <label for="kop">Sacco or operator <small>(optional)</small></label><input id="kop"><label for="kwa">Booking WhatsApp <small>(optional, 2547XXXXXXXX)</small></label><input id="kwa" inputmode="numeric">
+      <label class="chk" id="kpinrow"><input type="checkbox" id="kpin"> Pin this sacco's booking button (paid sponsor)</label><button id="kaddf" class="alt">Save fare</button><div id="kfl"></div>
+      <h2>Clinics, hospitals and pharmacies</h2>
+      <label for="knm">Name</label><input id="knm"><div class="row"><div><label for="kkd">Type</label><select id="kkd"><option value="clinic">Clinic</option><option value="hospital">Hospital</option><option value="pharmacy">Pharmacy</option></select></div><div><label for="kph">Phone</label><input id="kph" inputmode="numeric" placeholder="2547XXXXXXXX"></div></div>
+      <label for="ksv">Services <small>(optional)</small></label><input id="ksv"><label for="khr">Opening hours <small>(optional)</small></label><input id="khr"><label class="chk"><input type="checkbox" id="k24"> Open 24 hours</label>
+      <div id="kftrow"><label for="kft">Featured for how many days <small>(paid listing, optional)</small></label><input id="kft" inputmode="numeric"></div><button id="kaddc" class="alt">Add facility</button><div id="kcl"></div>
+      <h2>Road and fog status</h2>
+      <label for="krd">Road <small>(for example Mwatate to Wundanyi)</small></label><input id="krd"><label for="kst">Status</label><select id="kst"><option value="clear">Clear</option><option value="patchy">Patchy mist</option><option value="heavy">Heavy fog</option></select>
+      <label for="knt">Note <small>(optional)</small></label><input id="knt"><button id="ksetr" class="alt">Save road status</button><div id="krl"></div>
+      <h2>Food, drink and nightlife venues</h2>
+      <label for="vnm">Name</label><input id="vnm"><div class="row"><div><label for="vkd">Type</label><select id="vkd"><option value="restaurant">Restaurant</option><option value="cafe">Cafe</option><option value="bar">Bar</option><option value="club">Club</option><option value="lodge">Lodge</option></select></div><div><label for="vph">Phone</label><input id="vph" inputmode="numeric" placeholder="2547XXXXXXXX"></div></div>
+      <label for="vad">Address</label><input id="vad"><label for="vhr">Opening hours</label><input id="vhr"><label for="vds">About <small>(optional)</small></label><input id="vds"><button id="vadd" class="alt">Add venue</button>
+      <label for="vsel">Choose a venue</label><select id="vsel"></select>
+      <div id="vpromoBox"><label for="vpt">Tonight line <small>(paid promo, pinned first)</small></label><input id="vpt" placeholder="Happy hour 5 to 8 pm"><label for="vpd">Days <small>(1 to 30)</small></label><input id="vpd" inputmode="numeric"><button id="vpromo" class="alt">Pin this promo</button></div>
+      <label for="mi">Menu item</label><input id="mi"><div class="row"><div><label for="mp">Price in KSh</label><input id="mp" inputmode="numeric"></div><div><label for="mc">Type</label><select id="mc"><option value="food">Food</option><option value="drink">Drink</option></select></div></div>
+      <button id="maddm" class="alt">Save item (marks the menu as checked today)</button><div id="mlist3"></div><div id="vlist"></div>
+
+
+    </section>
+
+    <section id="money" hidden>
+      <h2>Rates (shown on the advertise page)</h2>
+      <label for="rtn">Name</label><input id="rtn"><div class="row"><div><label for="rtp">Price in KSh</label><input id="rtp" inputmode="numeric"></div><div><label for="rtu">Per</label><input id="rtu" placeholder="month"></div></div>
+      <label for="rtd">Details <small>(optional)</small></label><input id="rtd"><button id="addr" class="alt">Add rate</button><div id="rlist"></div>
+      <h2>Ticketed events</h2>
+      <label for="xt">Event title</label><input id="xt"><label for="xo">Organiser</label><input id="xo"><label for="xph">Organiser phone <small>(2547XXXXXXXX, for settling up)</small></label><input id="xph" inputmode="numeric">
+      <div class="row"><div><label for="xs">Starts</label><input id="xs" type="datetime-local"></div><div><label for="xv">Venue</label><input id="xv"></div></div>
+      <div class="row"><div><label for="xpr">Price KSh <small>(0 = free)</small></label><input id="xpr" inputmode="numeric"></div><div><label for="xc">Capacity</label><input id="xc" inputmode="numeric"></div></div>
+      <div class="row"><div><label for="xm">Our commission %</label><input id="xm" inputmode="numeric" value="10"></div><div><label for="xa">Area</label><select id="xa"><option value="">Whole county</option><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option></select></div></div>
+      <label for="xd">Description <small>(optional)</small></label><input id="xd"><button id="addx" class="alt">Create event</button><div id="xlist"></div>
+      <h2>Insight subscribers</h2>
+      <label for="ior">Organisation</label><input id="ior"><label for="ico">Contact</label><input id="ico"><label for="imo">Months</label><input id="imo" inputmode="numeric" value="12"><button id="addi" class="alt">Create subscription and show key</button><div id="clist"></div>
+    </section>
+
+    <section id="print" hidden>
+      <h2>Print supplement</h2>
+      <p>Tick the stories, open the layout, then print it to PDF (Ctrl+P, Save as PDF) and send the file to your printer. Best on a computer with Chrome.</p>
+      <div class="row"><div><label for="pa">Area</label><select id="pa"><option value="">Whole county</option><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option></select></div><div><label for="pd">Stories from the last</label><select id="pd"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select></div></div>
+      <div class="row"><div><label for="pz">Page size</label><select id="pz"><option value="A3">A3</option><option value="A4">A4</option><option value="Tabloid">Tabloid (11 x 17 in)</option></select></div><div><label for="pm">Masthead</label><select id="pm"><option value="both">Both papers</option><option value="review">The County Review</option><option value="roundup">County Roundup</option></select></div></div>
+      <div class="row"><div><label for="pi">Edition label</label><input id="pi" placeholder="Issue 12"></div><div><label for="pk">Ink</label><select id="pk"><option value="mono">Black and white</option><option value="colour">Colour</option></select></div></div>
+      <button id="pload" class="alt">Show stories</button><div id="plist2"></div><button id="popen">Open print layout</button><button id="pstamp" class="alt">Record live legal notices as printed in this edition</button>
+    </section>
+
+    <section id="boards" hidden><h2>Memorial, celebration and legal notices</h2><label for="bs">Show</label><select id="bs"><option value="pending">Waiting for review</option><option value="published">Published</option></select><div id="blist"></div>
+      <div id="coBox"><h2>Official unclaimed-body notice (owner or editor)</h2><p>Only from an official source such as the mortuary or police. Keep the description non-graphic and never include photos.</p>
+      <label for="cot">Heading <small>(for example Unidentified adult male)</small></label><input id="cot"><label for="cos">Description <small>(approximate age, clothing, where found; no graphic detail)</small></label><textarea id="cos" rows="4"></textarea>
+      <label for="cov">Mortuary</label><input id="cov"><div class="row"><div><label for="cor">Police reference or OB</label><input id="cor"></div><div><label for="cost">Police station</label><input id="cost"></div></div>
+      <div class="row"><div><label for="cod">Admitted on</label><input id="cod" type="date"></div><div><label for="cop">Contact phone <small>(2547XXXXXXXX)</small></label><input id="cop" inputmode="numeric"></div></div>
+      <div class="row"><div><label for="coa">Area</label><select id="coa"><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option></select></div><div><label for="codays">Run for days <small>(default 30)</small></label><input id="codays" inputmode="numeric"></div></div>
+      <button id="coadd" class="alt">Publish notice</button></div></section>
+
+    <section id="pub" hidden><h2>Published stories</h2><input id="pq" placeholder="Search headlines"><div id="plist"></div></section>
+
+    <section id="people" hidden>
+      <h2>Add a person</h2>
+      <label for="ur">Role</label><select id="ur"></select>
+      <div id="hubRow"><label for="uh">Hub</label><select id="uh"></select></div>
+      <label for="un">Name</label><input id="un">
+      <label for="up">M-Pesa number <small>(2547XXXXXXXX, for fees)</small></label><input id="up" inputmode="numeric">
+      <button id="addu">Create and show key</button>
+      <div id="ownerBox" hidden><h2>Replace a hub lead</h2><label for="rh">Hub</label><select id="rh"></select><label for="rn">New lead's name</label><input id="rn"><label for="rp">M-Pesa number</label><input id="rp" inputmode="numeric"><button id="repl" class="alt">Replace and show new key</button></div>
+      <div id="recBox" hidden><h2>Recovery code</h2><p>Keep it safe and apart from your master key. It restores your access if the key is lost.</p><button id="rec" class="alt">Create recovery code</button></div>
+      <h2>Your team</h2><div id="team"></div>
+    </section>
+
+    <section id="tools" hidden>
+      <h2>Daily prices</h2>
+      <label for="ps">Market</label><select id="ps"><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option></select>
+      <div id="pr"></div><div class="row"><div><label for="pcn">Other item <small>(for example Tsavorite, per gram)</small></label><input id="pcn"></div><div><label for="pcl">Local KSh</label><input id="pcl" inputmode="numeric"></div></div><label for="pcb">Mombasa KSh <small>(optional)</small></label><input id="pcb" inputmode="numeric"><button id="savep" class="alt">Save prices</button>
+      <h2>Post a notice or alert</h2><input type="hidden" id="nid">
+      <label for="nk">Type</label><select id="nk"><option value="alert">ALERT (red tag, all screens)</option><option value="transport">Roads and transport</option><option value="utility">Water and power</option><option value="health">Clinics and health</option><option value="school">School dates</option><option value="weather">Weather</option><option value="advisory">Farming advice</option><option value="bursary">Bursary</option><option value="participation">Public participation</option><option value="announcement">County announcement</option><option value="tender">Tender</option><option value="job">Job</option><option value="land">Land notice</option><option value="court">Court listing</option><option value="event">Event</option><option value="lostfound">Lost and found</option><option value="obituary">Obituary</option><option value="notice">Public notice</option><option value="league">Sports table</option><option value="guide">How-to guide</option><option value="history">Our history</option></select>
+      <div class="row"><div><label for="na">Area</label><select id="na"><option value="all">Whole county</option><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option></select></div>
+      <div><label for="nl">Language</label><select id="nl"><option value="en">English</option><option value="sw">Kiswahili</option></select></div></div>
+      <label for="nt">Title</label><input id="nt" maxlength="150"><label for="nb">Details</label><textarea id="nb" rows="4"></textarea>
+      <div class="row"><div><label for="ne">Event date</label><input id="ne" type="date"></div><div><label for="nx">Hide after</label><input id="nx" type="date"></div></div>
+      <button id="postn">Post</button>
+      <h2>Add a podcast episode</h2>
+      <label for="et">Title</label><input id="et"><label for="etp">Show</label><select id="etp"><option>politics</option><option>sports</option><option>business</option><option>culture</option><option>tourism</option><option>agriculture</option><option>general</option></select>
+      <label for="ev">Video link <small>(YouTube or direct .mp4)</small></label><input id="ev" type="url">
+      <label for="eth">Cover image link <small>(optional)</small></label><input id="eth" type="url">
+      <button id="adde" class="alt">Publish episode</button>
+      <h2>Add a hub</h2>
+      <label for="hn">Hub name</label><input id="hn"><label for="hs">Sub-county</label><select id="hs"><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option></select>
+      <button id="addh" class="alt">Create hub</button>
+      <h2>Posted notices</h2><div id="nlist"></div>
+      <h2>Business listings</h2><div id="mlist"></div>
+      <h2>Hubs</h2><div id="hlist"></div>
+      <h2>Insights</h2><button id="ins" class="alt">Show last 30 days</button><pre id="insout" style="white-space:pre-wrap;font-size:13px"></pre>
+      <div id="auditBox" hidden><h2>Activity log</h2><button id="aud" class="alt">Show recent activity</button><pre id="audout" style="white-space:pre-wrap;font-size:13px"></pre></div>
+    </section>
+  </div>
+</main>
+<script>
+const $=s=>document.querySelector(s);let KEY=sessionStorage.getItem('deskKey')||localStorage.getItem('deskKey')||'',ME=null,HUBS=[],TEAM=[],PHOTO=null,OFFLINE=false;
+const say=(t,bad)=>{const m=$('#msg');m.textContent=t;m.className='note'+(bad?' err':'');m.hidden=!t;if(t)scrollTo(0,0)};
+const api=async(p,o={})=>{const r=await fetch(p,{...o,headers:{'content-type':'application/json','x-api-key':KEY}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Request failed');return d};
+const post=(p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
+const el=(t,p={},k=[])=>{const n=Object.assign(document.createElement(t),p);n.append(...k);return n};
+const MAKES={owner:['editor','hub_lead','journalist'],editor:['hub_lead','journalist'],hub_lead:['journalist']};
+const RANK={journalist:1,hub_lead:2,editor:3,owner:4},NAME={hub_lead:'hub lead',journalist:'journalist',editor:'editor',owner:'owner'};
+const staff=()=>['owner','editor'].includes(ME.role);
+
+async function enter(){try{ME=await api('/api/desk/me');sessionStorage.setItem('deskKey',KEY);localStorage.setItem('deskMe',JSON.stringify(ME));if($('#keep').checked)localStorage.setItem('deskKey',KEY);OFFLINE=false;
+  $('#who').textContent=`${ME.name} (${NAME[ME.role]})`;$('#login').hidden=true;$('#app').hidden=false;say('');
+  if(!ME.agreed&&ME.role!=='owner'){$('#agree').hidden=false;$('#work').hidden=true}else start()}
+  catch(e){const m=localStorage.getItem('deskMe');if(e instanceof TypeError&&m){ME=JSON.parse(m);OFFLINE=true;$('#who').textContent=`${ME.name} (offline)`;$('#login').hidden=true;$('#app').hidden=false;start();say('No signal. You can write stories and they will send when you are back online.')}else say('That key was not accepted.',1)}}
+function start(){$('#agree').hidden=true;$('#work').hidden=false;const r=ME.role;
+  $('#tPeople').hidden=r==='journalist';$('#tTools').hidden=!staff();$('#tPub').hidden=!staff();$('#tComm').hidden=r==='journalist';$('#tMoney').hidden=!staff();$('#tPrint').hidden=!staff();$('#kpinrow').hidden=!staff();$('#kftrow').hidden=!staff();$('#vpromoBox').hidden=!staff();$('#coBox').hidden=!staff();$('#tBoards').hidden=r==='journalist';$('#paidBox').hidden=!staff();$('#ownerBox').hidden=!staff();$('#recBox').hidden=r!=='owner';$('#subRow').hidden=!staff();$('#auditBox').hidden=r!=='owner';
+  $('#qh').textContent=r==='journalist'?'My stories':staff()?'Review desk':'Hub desk';
+  $('#ur').replaceChildren(...(MAKES[r]||[]).map(x=>el('option',{value:x,textContent:NAME[x]})));
+  $('#ur').onchange=hubVis;if(!OFFLINE){if(r!=='journalist')loadHubs().then(loadTeam);loadQueue()}else document.querySelectorAll('[data-tab]').forEach(b=>b.hidden=b.dataset.tab!=='write');show('write');outbox();flush()}
+function show(t){['write','queue','tips','boards','comm','money','print','pub','people','tools'].forEach(x=>$('#'+x).hidden=x!==t)}
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{show(b.dataset.tab);({queue:loadQueue,pub:loadPub,tools:loadTools,tips:loadTips,comm:loadComm,money:loadMoney,print:loadPrintList,boards:loadBoards,write:outbox})[b.dataset.tab]?.()});
+$('#signout').onclick=()=>{sessionStorage.clear();localStorage.removeItem('deskKey');localStorage.removeItem('deskMe');location.reload()};
+$('#go').onclick=()=>{KEY=$('#key').value.trim();enter()};if(KEY)enter();
+$('#agbtn').onclick=async()=>{if(!$('#ag').checked)return say('Tick the box to accept.',1);try{await post('/api/desk/agree');ME.agreed=true;start()}catch(e){say(e.message,1)}};
+
+$('#head').oninput=e=>$('#hc').textContent=e.target.value.length+'/150';
+$('#gps').onclick=()=>navigator.geolocation?.getCurrentPosition(p=>{$('#lat').value=p.coords.latitude.toFixed(6);$('#lon').value=p.coords.longitude.toFixed(6)},()=>say('Could not get your location. Leave blank to use the town centre.',1));
+$('#send').onclick=async()=>{const cid=(crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random().toString(16).slice(2));
+  await outPut({cid,sub_county:$('#sub').value,paper:$('#paper').value,placement:$('#place').value,topic:$('#topic').value,headline:$('#head').value,bullets:[$('#b1').value,$('#b2').value,$('#b3').value],latitude:$('#lat').value,longitude:$('#lon').value,place_name:$('#plc').value,body:$('#body').value,image_url:$('#img').value,photo:PHOTO});
+  ['head','b1','b2','b3','body','img','vid','lat','lon','plc'].forEach(i=>$('#'+i).value='');PHOTO=null;$('#photo').value='';say('Saved on this phone. Sending when there is signal.');await outbox();flush(true)};
+
+async function act(path,body){try{await post(path,body);loadQueue()}catch(e){say(e.message,1)}}
+function editBox(s,after,pub){const h=el('input',{value:s.headline||''}),b=[0,1,2].map(i=>el('textarea',{rows:2,maxLength:160,value:(s.bullets||[])[i]||''})),note=el('input',{placeholder:'Correction note (shown publicly)'}),bd=el('textarea',{rows:6,maxLength:4000,value:s.body||''});
+  return el('div',{className:'eb'},[el('label',{textContent:'Headline'}),h,...b,el('label',{textContent:'Full story (optional)'}),bd,...(pub?[note]:[]),el('button',{textContent:'Save changes',onclick:async()=>{try{const d=await api(`/api/desk/stories/${s.id}`,{method:'PATCH',body:JSON.stringify({headline:h.value,bullets:b.map(x=>x.value),body:bd.value,correction:note.value})});say(d.changed.length||d.correction?'Saved and logged.':'No changes.');after()}catch(e){say(e.message,1)}}})])}
+const editBtn=(s,c,after,pub)=>el('button',{className:'alt',textContent:'Edit',onclick:()=>{const x=c.querySelector('.eb');x?x.remove():c.append(editBox(s,after,pub))}});
+async function loadQueue(){const rows=await api('/api/desk/stories'),r=ME.role;
+  $('#list').replaceChildren(...(rows.length?rows.map(s=>{const c=el('div',{className:'card'},[el('div',{className:'meta',textContent:`${s.sub_county} · ${s.topic} · ${s.placement} · ${s.status} · by ${s.reporter||'staff'}`}),el('b',{textContent:s.headline}),el('ul',{},s.bullets.map(b=>el('li',{textContent:b})))]);
+    if(r==='journalist'){c.append(el('p',{textContent:s.status==='approved'?(s.fee_kes?`Published. Fee KSh ${s.fee_kes}${s.fee_paid?' (paid)':' (not yet paid)'}`:'Published.'):s.status==='rejected'?'Not published.':'Waiting for review.'}));if(s.status==='draft')c.append(editBtn(s,c,loadQueue))}
+    else if(r==='hub_lead'){c.append(...(s.placement==='daily'?[el('button',{textContent:'Publish to daily feed',onclick:()=>act(`/api/desk/stories/${s.id}/approve`)})]:[]),el('button',{className:'alt',textContent:'Pass to editor',onclick:()=>act(`/api/desk/stories/${s.id}/passup`)}),editBtn(s,c,loadQueue),el('button',{className:'no',textContent:'Reject',onclick:()=>act(`/api/desk/stories/${s.id}/reject`)}))}
+    else if(s.status==='approved'){const fee=el('input',{type:'number',min:0,placeholder:'Fee in KSh',value:s.fee_kes||'',ariaLabel:'Fee in KSh'});
+      c.append(el('p',{textContent:`Owed to ${s.reporter||'contributor'} (${s.mpesa_phone||'no number'})`}),fee,el('button',{className:'alt',textContent:'Save fee',onclick:()=>act(`/api/desk/stories/${s.id}/fee`,{fee_kes:fee.value})}),...(s.fee_kes?[el('button',{textContent:'Mark as paid',onclick:()=>act(`/api/desk/stories/${s.id}/paid`)})]:[]))}
+    else{const fee=el('input',{type:'number',min:0,placeholder:'Fee in KSh (0 if none)',ariaLabel:'Fee in KSh'}),br=el('input',{type:'checkbox'}),ld=el('input',{type:'checkbox'}),la=el('input',{value:s.latitude||'',ariaLabel:'Latitude'}),lo=el('input',{value:s.longitude||'',ariaLabel:'Longitude'});
+      c.append(el('div',{className:'row'},[la,lo]),fee,el('label',{className:'chk'},[br,' Mark as breaking (red tag for 24 hours)']),el('label',{className:'chk'},[ld,' Make this the lead story (its photo fronts the main page)']),el('button',{textContent:'Approve and publish',onclick:()=>act(`/api/desk/stories/${s.id}/approve`,{fee_kes:fee.value,latitude:la.value,longitude:lo.value,breaking:br.checked,is_lead:ld.checked})}),editBtn(s,c,loadQueue),el('button',{className:'no',textContent:'Reject',onclick:()=>act(`/api/desk/stories/${s.id}/reject`)}))}
+    return c}):[el('p',{textContent:'Nothing here right now.'})]))}
+async function loadPub(){const rows=await api('/api/desk/published?q='+encodeURIComponent($('#pq').value)),writers=TEAM.filter(u=>['journalist','hub_lead'].includes(u.role)&&u.active);
+  $('#plist').replaceChildren(...(rows.length?rows.map(s=>{const c=el('div',{className:'card'},[el('div',{className:'meta',textContent:`${s.topic} · ${s.placement} · by ${s.reporter||'staff'} · ${s.corrections} correction(s)`}),el('b',{textContent:s.headline})]);
+    c.append(editBtn(s,c,loadPub,true),el('button',{className:'alt',textContent:'Make lead story',onclick:async()=>{try{await post(`/api/desk/stories/${s.id}/lead`);say('This is now the lead story.')}catch(e){say(e.message,1)}}}),el('button',{className:'no',textContent:'Unpublish',onclick:async()=>{try{await post(`/api/desk/stories/${s.id}/unpublish`);loadPub()}catch(e){say(e.message,1)}}}));
+    const others=rows.filter(x=>x.id!==s.id),ps=el('select',{ariaLabel:'Pair with'},others.map(x=>el('option',{value:x.id,textContent:x.headline.slice(0,50)})));
+    c.append(el('div',{className:'meta',textContent:s.pair_id?'Paired with another story':'Not paired'}),ps,el('button',{className:'alt',textContent:'Pair as "they say, we say"',onclick:async()=>{try{await post(`/api/desk/stories/${s.id}/pair`,{with_id:ps.value});say('Paired.');loadPub()}catch(e){say(e.message,1)}}}),
+      ...(s.pair_id?[el('button',{className:'no',textContent:'Unpair',onclick:async()=>{try{await post(`/api/desk/stories/${s.id}/pair`,{with_id:null});loadPub()}catch(e){say(e.message,1)}}})]:[]));
+    if(ME.role==='owner'){const sel=el('select',{ariaLabel:'Credit to'},writers.map(w=>el('option',{value:w.id,textContent:w.name})));c.append(sel,el('button',{className:'alt',textContent:'Change credit and pay',onclick:async()=>{try{await post(`/api/desk/stories/${s.id}/credit`,{author_id:sel.value});say('Credit changed.');loadPub()}catch(e){say(e.message,1)}}}))}
+    return c}):[el('p',{textContent:'No published stories found.'})]))}
+$('#pq').onchange=loadPub;
+async function loadHubs(){HUBS=await api('/api/desk/hubs');const o=()=>HUBS.map(h=>el('option',{value:h.id,textContent:`${h.name} (${h.sub_county})`}));
+  $('#uh').replaceChildren(...o());$('#rh').replaceChildren(...o());hubVis();
+  $('#hlist').replaceChildren(...HUBS.map(h=>el('div',{className:'row'},[el('span',{textContent:h.name+(h.frozen?' (frozen)':'')}),...(ME.role==='owner'?[el('button',{className:'alt',textContent:h.frozen?'Unfreeze':'Freeze',onclick:async()=>{try{await post(`/api/desk/hubs/${h.id}/freeze`,{frozen:!h.frozen});loadHubs()}catch(e){say(e.message,1)}}})]:[])])))}
+function hubVis(){$('#hubRow').hidden=ME.role==='hub_lead'||$('#ur').value==='editor'}
+$('#addu').onclick=async()=>{try{const d=await post('/api/desk/users',{role:$('#ur').value,hub_id:$('#uh').value,name:$('#un').value,mpesa_phone:$('#up').value});
+  say(`Key for ${$('#un').value}. Shown once. Send it privately: ${d.key}`);$('#un').value=$('#up').value='';loadTeam()}catch(e){say(e.message,1)}};
+async function loadTeam(){TEAM=await api('/api/desk/users');const own=ME.role==='owner',T=async(p,b)=>{try{const d=await post(p,b);loadTeam();return d}catch(e){say(e.message,1)}};
+  $('#team').replaceChildren(...(TEAM.length?TEAM.map(u=>{const mine=RANK[ME.role]>RANK[u.role]&&ME.role!=='journalist';
+    const c=el('div',{className:'card'},[el('b',{textContent:`${u.name} (${NAME[u.role]})`}),el('div',{className:'meta',textContent:`${u.hub||'no hub'} · ${u.frozen?'frozen':u.active?'active':'switched off'} · ${u.agreed_at?'agreement accepted':'agreement pending'}`})]);
+    if(mine)c.append(el('button',{className:'alt',textContent:'Issue new key',onclick:async()=>{const d=await T(`/api/desk/users/${u.id}/reset-key`);if(d)say(`New key for ${u.name}. Shown once: ${d.key}`)}}),el('button',{className:'no',textContent:'Switch off',onclick:()=>T(`/api/desk/users/${u.id}/deactivate`)}));
+    if(staff()&&['journalist','hub_lead'].includes(u.role)){const sel=el('select',{ariaLabel:'Move to hub'},HUBS.map(h=>el('option',{value:h.id,textContent:h.name})));c.append(sel,el('button',{className:'alt',textContent:'Move to this hub',onclick:()=>T(`/api/desk/users/${u.id}/move`,{hub_id:sel.value})}))}
+    if(own){c.append(el('button',{className:'no',textContent:u.frozen?'Unfreeze':'Freeze',onclick:()=>T(`/api/desk/users/${u.id}/freeze`,{frozen:!u.frozen})}));
+      const others=TEAM.filter(x=>x.role==='editor'&&x.id!==u.id&&x.active&&!x.frozen);
+      if(u.role==='editor'&&others.length){const sel=el('select',{ariaLabel:'Hand over to'},others.map(x=>el('option',{value:x.id,textContent:x.name})));c.append(sel,el('button',{className:'alt',textContent:'Hand over fees and accounts, then switch off',onclick:async()=>{const d=await T(`/api/desk/users/${u.id}/handover`,{to_id:sel.value,switch_off:true});if(d)say(`Handed over ${d.stories} stories with unpaid fees.`)}}))}}
+    return c}):[el('p',{textContent:'No one yet.'})]))}
+$('#repl').onclick=async()=>{try{const d=await post(`/api/desk/hubs/${$('#rh').value}/replace-lead`,{name:$('#rn').value,mpesa_phone:$('#rp').value});say(`New hub lead key. Shown once. Send it privately: ${d.key}`);$('#rn').value=$('#rp').value='';loadTeam()}catch(e){say(e.message,1)}};
+$('#rec').onclick=async()=>{try{const d=await post('/api/desk/recovery-code');say(`Recovery code. Shown once. Store it safely, apart from your master key: ${d.code}`)}catch(e){say(e.message,1)}};
+
+const COMM=['Tomatoes (box)','Onions (kg)','Bananas (bunch)','Maize (kg)','Beans (kg)','Goat (each)','Cattle (each)','Chicken (each)','Eggs (tray)','Milk (litre)','Charcoal (bag)','Fuel (litre)'];
+$('#pr').replaceChildren(...COMM.map(c=>el('div',{className:'row'},[el('label',{textContent:c+' local KSh'}),el('label',{textContent:'Mombasa KSh'}),el('input',{type:'number',min:0,id:'pl_'+c}),el('input',{type:'number',min:0,id:'pb_'+c})])));
+$('#savep').onclick=async()=>{try{const d=await post('/api/desk/prices',{sub_county:$('#ps').value,items:[...COMM.map(c=>({commodity:c,local_price:document.getElementById('pl_'+c).value,benchmark_price:document.getElementById('pb_'+c).value})),{commodity:$('#pcn').value,local_price:$('#pcl').value,benchmark_price:$('#pcb').value}]});say('Saved '+d.saved+' prices.')}catch(e){say(e.message,1)}};
+$('#postn').onclick=async()=>{try{const b={kind:$('#nk').value,sub_county:$('#na').value,lang:$('#nl').value,title:$('#nt').value,body:$('#nb').value,event_date:$('#ne').value,expires_on:$('#nx').value};
+  if($('#nid').value){await api(`/api/desk/notices/${$('#nid').value}`,{method:'PATCH',body:JSON.stringify(b)});say('Notice updated.');$('#nid').value='';$('#postn').textContent='Post'}else{await post('/api/desk/notices',b);say('Posted.')}
+  ['nt','nb','ne','nx'].forEach(i=>$('#'+i).value='');loadNotices()}catch(e){say(e.message,1)}};
+$('#adde').onclick=async()=>{try{await post('/api/desk/episodes',{title:$('#et').value,topic:$('#etp').value,video_url:$('#ev').value,thumb_url:$('#eth').value});say('Episode published.');['et','ev','eth'].forEach(i=>$('#'+i).value='')}catch(e){say(e.message,1)}};
+$('#addh').onclick=async()=>{try{await post('/api/desk/hubs',{name:$('#hn').value,sub_county:$('#hs').value});say('Hub created.');$('#hn').value='';loadHubs()}catch(e){say(e.message,1)}};
+$('#ins').onclick=async()=>{try{$('#insout').textContent=JSON.stringify(await api('/api/desk/insights'),null,1)}catch(e){say(e.message,1)}};
+$('#aud').onclick=async()=>{try{const a=await api('/api/desk/audit');$('#audout').textContent=a.map(x=>`${String(x.created_at).slice(0,16).replace('T',' ')}  ${x.who||'?'}  ${x.action}  ${x.target||''} ${x.detail||''}`).join('\n')}catch(e){say(e.message,1)}};
+
+async function loadTools(){loadPrices();loadNotices();loadListings()}
+async function loadPrices(){const rows=await api('/api/desk/prices?sub_county='+$('#ps').value);COMM.forEach(c=>{const r=rows.find(x=>x.commodity===c);document.getElementById('pl_'+c).value=r?Number(r.local_price):'';document.getElementById('pb_'+c).value=r&&r.benchmark_price?Number(r.benchmark_price):''})}
+$('#ps').onchange=loadPrices;
+async function loadNotices(){const rows=await api('/api/desk/notices'),today=new Date().toISOString().slice(0,10);
+  $('#nlist').replaceChildren(...rows.slice(0,15).map(n=>{const gone=n.expires_on&&String(n.expires_on).slice(0,10)<today;return el('div',{className:'card'},[el('div',{className:'meta',textContent:`${n.kind} · ${n.area||'whole county'}${gone?' · expired':''}`}),el('b',{textContent:n.title}),
+    el('button',{className:'alt',textContent:'Edit',onclick:()=>{$('#nid').value=n.id;$('#nt').value=n.title;$('#nb').value=n.body;$('#ne').value=n.event_date?String(n.event_date).slice(0,10):'';$('#nx').value=n.expires_on?String(n.expires_on).slice(0,10):'';$('#postn').textContent='Save changes';$('#nt').scrollIntoView()}}),
+    ...(gone?[]:[el('button',{className:'no',textContent:'Expire now',onclick:async()=>{try{await post(`/api/desk/notices/${n.id}/expire`);loadNotices()}catch(e){say(e.message,1)}}})])])}))}
+async function loadListings(){const rows=await api('/api/desk/merchants');
+  $('#mlist').replaceChildren(...rows.slice(0,15).map(m=>{const ver=m.verified_at&&m.badge_paid_until&&new Date(m.badge_paid_until)>new Date();
+    return el('div',{className:'card'},[el('b',{textContent:m.business_name}),el('div',{className:'meta',textContent:`${m.area} · ${m.category} · ${m.status}${m.expires_at?' · until '+String(m.expires_at).slice(0,10):''}${ver?' · VERIFIED':m.badge_paid_until?' · badge paid, awaiting your check':m.verified_at?' · checked, badge unpaid':''}`}),
+      el('button',{className:'alt',textContent:'Extend 14 days',onclick:async()=>{try{await post(`/api/desk/merchants/${m.id}/extend`);loadListings()}catch(e){say(e.message,1)}}}),
+      el('button',{className:'alt',textContent:m.verified_at?'Remove verification':'Mark as verified (after checking)',onclick:async()=>{try{await post(`/api/desk/merchants/${m.id}/verify`,{verified:!m.verified_at});loadListings()}catch(e){say(e.message,1)}}}),
+      el('button',{className:'no',textContent:'Expire now',onclick:async()=>{try{await post(`/api/desk/merchants/${m.id}/expire`);loadListings()}catch(e){say(e.message,1)}}}),
+      el('div',{className:'meta',textContent:'Report link for the business: '+location.origin+'/report.html?t='+m.report_token})])}))}
+$('#photo').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const bmp=await createImageBitmap(f),sc=Math.min(1,1280/Math.max(bmp.width,bmp.height)),cv=document.createElement('canvas');cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+  PHOTO=await new Promise(r=>cv.toBlob(r,'image/jpeg',.78));say('Photo ready. It uploads when the story sends.')}catch(err){say('Could not read that photo. Try another.',1)}};
+const idb=()=>new Promise((ok,no)=>{const r=indexedDB.open('desk',1);r.onupgradeneeded=()=>r.result.createObjectStore('out',{keyPath:'cid'});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+const idbDo=async(mode,fn)=>{const db=await idb();return new Promise((ok,no)=>{const t=db.transaction('out',mode),q=fn(t.objectStore('out'));t.oncomplete=()=>ok(q&&q.result);t.onerror=()=>no(t.error)})};
+const outAll=()=>idbDo('readonly',s=>s.getAll()),outPut=v=>idbDo('readwrite',s=>s.put(v)),outDel=k=>idbDo('readwrite',s=>s.delete(k));
+async function outbox(){const rows=await outAll();
+  $('#outbox').replaceChildren(...(rows.length?[el('h2',{textContent:`Waiting to send (${rows.length})`}),...rows.map(s=>el('div',{className:'card'},[el('b',{textContent:s.headline||'(no headline)'}),el('div',{className:'meta',textContent:s.error?`Not sent: ${s.error}`:'Waiting for signal'}),
+    el('button',{className:'alt',textContent:'Send now',onclick:()=>{s.error=null;outPut(s).then(()=>flush(true))}}),el('button',{className:'no',textContent:'Discard',onclick:async()=>{await outDel(s.cid);outbox()}})]))]:[]))}
+let flushing=false;
+async function flush(manual){if(flushing||!KEY)return;flushing=true;let sent=0,wait=0;
+  try{for(const s of await outAll()){if(s.error&&!manual)continue;
+    try{let img=s.image_url;if(s.photo){const r=await fetch('/api/upload',{method:'POST',headers:{'content-type':'image/jpeg','x-api-key':KEY},body:s.photo}),j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Photo not accepted');img=j.url}
+      const {cid,photo,error,...story}=s;await post('/api/bureau/stories',{...story,image_url:img,client_id:cid});await outDel(cid);sent++}
+    catch(e){if(e instanceof TypeError){wait++}else{s.error=e.message;await outPut(s)}}}
+  }finally{flushing=false}
+  await outbox();if(sent)say(`${sent} stor${sent>1?'ies':'y'} sent.`);else if(wait&&manual)say('Still no signal. Your story is saved and will send automatically.',1)}
+addEventListener('online',()=>flush());setInterval(()=>{if(navigator.onLine)flush()},60000);
+async function loadTips(){const rows=await api('/api/desk/tips'),r=ME.role,writers=TEAM.filter(u=>u.role==='journalist'&&u.active);
+  $('#tlist').replaceChildren(...(rows.length?rows.map(t=>{const c=el('div',{className:'card'},[el('div',{className:'meta',textContent:`${t.kind==='claim'?'CLAIM TO CHECK · ':''}${t.sub_county||'unknown area'} · ${t.source} · ${t.status}${t.assigned?' · '+t.assigned:''}${t.place_name?' · '+t.place_name:''}`}),el('p',{textContent:t.body})]);
+    if(t.contact)c.append(el('div',{className:'meta',textContent:'Contact: +'+t.contact}));
+    if(t.image_url)c.append(el('a',{href:t.image_url,target:'_blank',rel:'noopener',textContent:'View photo'}));
+    const done=async(p,b)=>{try{await post(p,b);loadTips()}catch(e){say(e.message,1)}};
+    if(r!=='journalist'&&writers.length){const sel=el('select',{ariaLabel:'Assign to'},writers.map(w=>el('option',{value:w.id,textContent:w.name})));c.append(sel,el('button',{className:'alt',textContent:'Assign',onclick:()=>done(`/api/desk/tips/${t.id}/assign`,{user_id:sel.value})}))}
+    if(t.kind==='claim'&&staff()){const v=el('select',{ariaLabel:'Verdict'},[['true','True'],['false','False'],['misleading','Misleading'],['unverified','Not verified']].map(x=>el('option',{value:x[0],textContent:x[1]}))),a=el('textarea',{rows:3,placeholder:'The verified answer, with what you checked'});
+      c.append(v,a,el('button',{textContent:'Publish fact-check',onclick:()=>done(`/api/desk/tips/${t.id}/factcheck`,{verdict:v.value,answer:a.value})}))}
+    c.append(el('button',{textContent:'Mark as used',onclick:()=>done(`/api/desk/tips/${t.id}/status`,{status:'used'})}));
+    if(r!=='journalist')c.append(el('button',{className:'no',textContent:'Spam',onclick:()=>done(`/api/desk/tips/${t.id}/status`,{status:'spam'})}));return c}):[el('p',{textContent:'No tips waiting.'})]))}
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],area=()=>$('#ca').value;
+$('#md').replaceChildren(...DAYS.map(x=>el('label',{className:'chk'},[el('input',{type:'checkbox',value:x}),' '+x])));
+const tr=fn=>async(...a)=>{try{await fn(...a)}catch(e){say(e.message,1)}};
+$('#addm').onclick=tr(async()=>{await post('/api/desk/markets',{name:$('#mn').value,sub_county:area(),days:[...$('#md').querySelectorAll('input:checked')].map(x=>x.value),notes:$('#mo').value});say('Market added.');$('#mn').value=$('#mo').value='';loadComm()});
+$('#addt').onclick=tr(async()=>{await post('/api/desk/traders',{name:$('#tn').value,sub_county:area(),market_id:$('#tm').value,goods:$('#tg').value,whatsapp:$('#tw').value});say('Trader added.');$('#tn').value=$('#tg').value=$('#tw').value='';loadComm()});
+$('#addl').onclick=tr(async()=>{await post('/api/desk/leagues',{name:$('#ln').value,sport:$('#ls').value,sub_county:$('#lsc').value});say('League created.');$('#ln').value='';loadComm()});
+$('#addf').onclick=tr(async()=>{await post('/api/desk/matches',{league_id:$('#lg').value,home:$('#fh').value,away:$('#fa').value,kickoff:$('#fk').value,venue:$('#fv').value});say('Fixture added.');$('#fh').value=$('#fa').value=$('#fv').value='';loadComm()});
+$('#impr').onclick=tr(async()=>{const rows=$('#rt').value.split('\n').map(l=>l.split(',').map(x=>x.trim())).filter(c=>c[0]).map(c=>({school:c[0],candidates:c[1],mean_score:c[2],mean_grade:c[3]}));const d=await post('/api/desk/results',{exam:$('#re').value,year:$('#ry').value,sub_county:area(),rows});say(`Imported ${d.saved} schools.`);$('#rt').value=''});
+async function loadComm(){loadKit();loadVenues();const m=await api('/api/markets?sub_county='+area()),s=await api('/api/sport?sub_county='+area()+($('#lg').value?'&league='+$('#lg').value:''));
+  const rm=(label,path)=>el('div',{className:'row'},[el('span',{textContent:label}),el('button',{className:'no',textContent:'Remove',onclick:tr(async()=>{await post(path);loadComm()})})]);
+  $('#tm').replaceChildren(el('option',{value:'',textContent:'(no market)'}),...m.markets.map(x=>el('option',{value:x.id,textContent:x.name})));
+  $('#mlist2').replaceChildren(...m.markets.map(x=>rm(`${x.name}: ${x.days.join(', ')}`,`/api/desk/markets/${x.id}/delete`)));
+  $('#tlist2').replaceChildren(...m.traders.map(x=>rm(`${x.name}${x.goods?' ('+x.goods+')':''}`,`/api/desk/traders/${x.id}/delete`)));
+  const keep=$('#lg').value;$('#lg').replaceChildren(...s.leagues.map(l=>el('option',{value:l.id,textContent:l.name})));if(keep)$('#lg').value=keep;
+  $('#lg').onchange=loadComm;
+  $('#flist').replaceChildren(...[...(s.pending||[]),...(s.fixtures||[])].map(f=>{const hg=el('input',{type:'number',min:0,max:99,ariaLabel:'Home goals'}),ag=el('input',{type:'number',min:0,max:99,ariaLabel:'Away goals'});
+    return el('div',{className:'card'},[el('b',{textContent:`${f.home} v ${f.away}`}),el('div',{className:'meta',textContent:new Date(f.kickoff).toLocaleString('en-GB')}),el('div',{className:'row'},[hg,ag]),
+      el('button',{textContent:'Save score',onclick:tr(async()=>{await post(`/api/desk/matches/${f.id}/score`,{hg:hg.value,ag:ag.value});loadComm()})}),el('button',{className:'no',textContent:'Remove',onclick:tr(async()=>{await post(`/api/desk/matches/${f.id}/delete`);loadComm()})})])}))}
+$('#ca').onchange=loadComm;
+$('#ci').onclick=async()=>{try{const x=await post('/api/desk/tix/checkin',{code:$('#cc').value});say(x.message,!x.ok);if(x.ok)$('#cc').value=''}catch(e){say(e.message,1)}};
+$('#cmp').onclick=tr(async()=>{await post(`/api/desk/tix/${encodeURIComponent($('#cc').value.trim())}/mark-paid`,{receipt:$('#cr').value});say('Ticket marked paid. Check it in now.');$('#cr').value=''});
+$('#addr').onclick=tr(async()=>{await post('/api/desk/rates',{name:$('#rtn').value,price_kes:$('#rtp').value,unit:$('#rtu').value,details:$('#rtd').value});say('Rate added.');['rtn','rtp','rtu','rtd'].forEach(i=>$('#'+i).value='');loadMoney()});
+$('#addx').onclick=tr(async()=>{await post('/api/desk/tix/events',{title:$('#xt').value,organiser:$('#xo').value,organiser_phone:$('#xph').value,starts_at:$('#xs').value,venue:$('#xv').value,price_kes:$('#xpr').value,capacity:$('#xc').value,commission_pct:$('#xm').value,sub_county:$('#xa').value,description:$('#xd').value});say('Event created. It is now on sale.');['xt','xo','xph','xv','xpr','xc','xd'].forEach(i=>$('#'+i).value='');loadMoney()});
+$('#addi').onclick=tr(async()=>{const d=await post('/api/desk/insight-clients',{org:$('#ior').value,contact:$('#ico').value,months:$('#imo').value});say(`Key for ${$('#ior').value}. Shown once. Send it privately: ${d.key}`);$('#ior').value=$('#ico').value='';loadMoney()});
+async function loadMoney(){const [rt,ev,cl]=await Promise.all([api('/api/rates'),api('/api/desk/tix/events'),api('/api/desk/insight-clients')]);
+  $('#rlist').replaceChildren(...rt.rates.map(r=>el('div',{className:'row'},[el('span',{textContent:`${r.name}: KSh ${r.price_kes} per ${r.unit}`}),...(r.id?[el('button',{className:'no',textContent:'Remove',onclick:tr(async()=>{await post(`/api/desk/rates/${r.id}/delete`);loadMoney()})})]:[])])));
+  $('#xlist').replaceChildren(...ev.map(e=>{const rev=e.sold*e.price_kes,com=Math.round(rev*e.commission_pct/100);
+    return el('div',{className:'card'},[el('b',{textContent:e.title}),el('div',{className:'meta',textContent:`${new Date(e.starts_at).toLocaleDateString('en-GB')} · ${e.sold}/${e.capacity} sold · ${e.checked_in} checked in · ${e.active?'on sale':'closed'}`}),
+      el('p',{textContent:`Takings KSh ${rev}. Our commission (${e.commission_pct}%) KSh ${com}. Owed to ${e.organiser}${e.organiser_phone?' (+'+e.organiser_phone+')':''}: KSh ${rev-com}${e.paid_out_at?'. Paid out '+String(e.paid_out_at).slice(0,10):''}.`}),
+      ...(e.active?[el('button',{className:'alt',textContent:'Close sales',onclick:tr(async()=>{await post(`/api/desk/tix/events/${e.id}/close`);loadMoney()})})]:[]),
+      ...(!e.paid_out_at&&rev>0?[el('button',{textContent:'Mark organiser as paid',onclick:tr(async()=>{await post(`/api/desk/tix/events/${e.id}/payout`);loadMoney()})})]:[])])}));
+  $('#clist').replaceChildren(...cl.map(c=>el('div',{className:'card'},[el('b',{textContent:c.org}),el('div',{className:'meta',textContent:`${c.contact||''} · active until ${String(c.active_until).slice(0,10)}`}),
+    el('button',{className:'alt',textContent:'Extend 12 months',onclick:tr(async()=>{await post(`/api/desk/insight-clients/${c.id}/extend`,{months:12});loadMoney()})}),el('button',{className:'no',textContent:'End now',onclick:tr(async()=>{await post(`/api/desk/insight-clients/${c.id}/end`);loadMoney()})})])))}
+let PL=[];
+async function loadPrintList(){PL=await api(`/api/desk/print/stories?sub_county=${$('#pa').value}&days=${$('#pd').value}`);
+  $('#plist2').replaceChildren(...(PL.length?PL.map((s,i)=>el('div',{className:'card'},[el('label',{className:'chk'},[el('input',{type:'checkbox',id:'pc'+s.id,checked:s.placement==='issue'}),' '+s.headline]),el('div',{className:'meta',textContent:`${s.area} · ${s.topic} · ${s.placement} · ${s.paper}${s.has_body?' · full text':''}${s.pair_id?' · paired':''}`}),el('label',{className:'chk'},[el('input',{type:'radio',name:'lead',value:s.id,checked:i===0}),' Lead story'])])):[el('p',{textContent:'No published stories in this period.'})]))}
+$('#pload').onclick=tr(loadPrintList);$('#pa').onchange=$('#pd').onchange=()=>loadPrintList().catch(()=>{});
+$('#popen').onclick=()=>{const ids=PL.filter(s=>$('#pc'+s.id)&&$('#pc'+s.id).checked).map(s=>s.id);if(!ids.length)return say('Tick at least one story.',1);
+  const lead=Number((document.querySelector('input[name=lead]:checked')||{}).value),order=ids.includes(lead)?[lead,...ids.filter(x=>x!==lead)]:ids;
+  window.open('/print.html?'+new URLSearchParams({ids:order.join(','),sub_county:$('#pa').value,size:$('#pz').value,mast:$('#pm').value,edition:$('#pi').value,ink:$('#pk').value}),'_blank')};
+$('#kaddf').onclick=tr(async()=>{await post('/api/desk/fares',{from_place:$('#kfr').value,to_place:$('#kto').value,mode:$('#kmo').value,fare_kes:$('#kfa').value,operator:$('#kop').value,whatsapp:$('#kwa').value,pinned:$('#kpin').checked});say('Fare saved.');['kfr','kto','kfa','kop','kwa'].forEach(i=>$('#'+i).value='');loadKit()});
+$('#kaddc').onclick=tr(async()=>{await post('/api/desk/facilities',{name:$('#knm').value,kind:$('#kkd').value,sub_county:area(),phone:$('#kph').value,services:$('#ksv').value,hours:$('#khr').value,open_24h:$('#k24').checked,featured_days:$('#kft').value});say('Added.');['knm','kph','ksv','khr','kft'].forEach(i=>$('#'+i).value='');loadKit()});
+$('#ksetr').onclick=tr(async()=>{await post('/api/desk/roads',{road:$('#krd').value,status:$('#kst').value,note:$('#knt').value});say('Road status saved. It hides itself after 24 hours.');$('#knt').value='';loadKit()});
+async function loadKit(){const [fs,fc,rd]=await Promise.all([api('/api/fares'),api('/api/facilities?sub_county='+area()),api('/api/roads')]);
+  const rm=(label,path,body)=>el('div',{className:'row'},[el('span',{textContent:label}),el('button',{className:'no',textContent:'Remove',onclick:tr(async()=>{await post(path,body);loadKit()})})]);
+  $('#kfl').replaceChildren(...fs.slice(0,15).map(f=>rm(`${f.from_place} to ${f.to_place}, ${f.mode}${f.operator?' ('+f.operator+')':''}: KSh ${f.fare_kes}`,`/api/desk/fares/${f.id}/delete`)));
+  $('#kcl').replaceChildren(...fc.map(f=>rm(`${f.name} (${f.kind})${f.open_24h?' 24h':''}`,`/api/desk/facilities/${f.id}/delete`)));
+  $('#krl').replaceChildren(...rd.map(r=>rm(`${r.road}: ${r.status}`,'/api/desk/roads/delete',{road:r.road})))}
+async function loadBoards(){const rows=await api('/api/desk/boards?status='+$('#bs').value);
+  $('#blist').replaceChildren(...(rows.length?rows.map(b=>{const e=b.extra||{};
+    const c=el('div',{className:'card'},[el('div',{className:'meta',textContent:`${b.board}${b.tier==='featured'?' (featured)':''} · ${b.area||'whole county'} · ${b.fee_kes?(b.paid?'KSh '+b.fee_kes+' paid':'unpaid'):'free'}${b.confirmed_at?' · CONFIRMED':''}`}),el('b',{textContent:b.title}),el('p',{textContent:b.summary}),
+      el('div',{className:'meta',textContent:[...Object.entries(e).map(([k,v])=>`${k}: ${v}`),b.event_date&&'date: '+String(b.event_date).slice(0,10),b.venue&&'venue: '+b.venue,b.contact_phone&&'contact: +'+b.contact_phone].filter(Boolean).join(' | ')})]);
+    if(b.photo_url)c.append(el('a',{href:b.photo_url,target:'_blank',rel:'noopener',textContent:'View photo'}));
+    if(b.status==='pending'){const note=el('input',{placeholder:'Who you phoned and what you checked',value:b.confirm_note||''}),feat=el('input',{type:'checkbox'}),days=el('input',{type:'number',min:1,max:365,placeholder:'Run for how many days (leave blank for the usual)'});
+      c.append(note,el('button',{className:'alt',textContent:b.confirmed_at?'Confirmed. Update the note':'I phoned and verified: confirm',onclick:tr(async()=>{await post(`/api/desk/boards/${b.id}/confirm`,{note:note.value});say('Confirmed.');loadBoards()})}),days,...(staff()&&['chama','celebration'].includes(b.board)?[el('label',{className:'chk'},[feat,' Feature this (pinned first)'])]:[]),
+        ...((!['legal','missing','coroner'].includes(b.board)||staff())?[el('button',{textContent:'Publish',onclick:tr(async()=>{const x=await post(`/api/desk/boards/${b.id}/publish`,{run_days:days.value,featured:feat.checked});say(`Published for ${x.days} days.`);loadBoards()})})]:[el('p',{className:'meta',textContent:'Only the owner or an editor can publish legal notices.'})]))}
+    else if(b.board==='missing'&&staff())c.append(el('div',{className:'meta',textContent:'Status: '+(e.case_status||'missing')}),el('button',{className:'alt',textContent:'Mark urgent',onclick:tr(async()=>{await post(`/api/desk/boards/${b.id}/status`,{status:'urgent'});loadBoards()})}),el('button',{textContent:'Mark found (removes the photo)',onclick:tr(async()=>{await post(`/api/desk/boards/${b.id}/status`,{status:'found'});loadBoards()})}))
+    else if(b.board==='legal')c.append(el('button',{className:'alt',textContent:'Open certificate of publication',onclick:()=>window.open(`/certificate.html?id=${b.id}`,'_blank')}),el('div',{className:'meta',textContent:b.print_edition?'Printed in: '+b.print_edition:'Not yet recorded in print'}));
+    const why=el('input',{placeholder:'Reason for removing'});c.append(why,el('button',{className:'no',textContent:'Remove',onclick:tr(async()=>{await post(`/api/desk/boards/${b.id}/remove`,{reason:why.value});loadBoards()})}));return c}):[el('p',{textContent:'Nothing here.'})]))}
+$('#bs').onchange=tr(loadBoards);
+$('#pstamp').onclick=tr(async()=>{const x=await post('/api/desk/boards/stamp-print',{edition:$('#pi').value,sub_county:$('#pa').value});say(`${x.stamped} legal notice(s) recorded as printed in ${$('#pi').value}.`)});
+$('#coadd').onclick=tr(async()=>{await post('/api/desk/boards/create',{board:'coroner',title:$('#cot').value,summary:$('#cos').value,venue:$('#cov').value,contact_phone:$('#cop').value,sub_county:$('#coa').value,run_days:$('#codays').value,extra:{ref:$('#cor').value,station:$('#cost').value,admitted_on:$('#cod').value}});say('Notice published.');['cot','cos','cov','cor','cost','cod','cop','codays'].forEach(i=>$('#'+i).value='');loadBoards()});
+$('#vadd').onclick=tr(async()=>{await post('/api/desk/venues',{name:$('#vnm').value,kind:$('#vkd').value,sub_county:area(),phone:$('#vph').value,address:$('#vad').value,hours:$('#vhr').value,description:$('#vds').value});say('Venue added.');['vnm','vph','vad','vhr','vds'].forEach(i=>$('#'+i).value='');loadVenues()});
+$('#vpromo').onclick=tr(async()=>{await post(`/api/desk/venues/${$('#vsel').value}/promo`,{text:$('#vpt').value,days:$('#vpd').value});say('Promo pinned.')});
+$('#maddm').onclick=tr(async()=>{await post('/api/desk/menu',{venue_id:$('#vsel').value,item:$('#mi').value,price_kes:$('#mp').value,category:$('#mc').value});say('Menu item saved.');$('#mi').value=$('#mp').value='';loadVenues()});
+async function loadVenues(){const v=await api('/api/venues?sub_county='+area()),keep=$('#vsel').value;$('#vsel').replaceChildren(...v.map(x=>el('option',{value:x.id,textContent:x.name})));if(keep)$('#vsel').value=keep;
+  $('#vlist').replaceChildren(...v.map(x=>el('div',{className:'row'},[el('span',{textContent:`${x.name} (${x.kind})`}),el('button',{className:'no',textContent:'Remove',onclick:tr(async()=>{await post(`/api/desk/venues/${x.id}/delete`);loadVenues()})})])));
+  if($('#vsel').value){const m=await api(`/api/venues/${$('#vsel').value}/menu`);$('#mlist3').replaceChildren(...m.map(i=>el('div',{className:'row'},[el('span',{textContent:`${i.item}: KSh ${i.price_kes}`}),el('button',{className:'no',textContent:'Remove',onclick:tr(async()=>{await post(`/api/desk/menu/${i.id}/delete`);loadVenues()})})])))}else $('#mlist3').replaceChildren()}
+$('#vsel').onchange=tr(loadVenues);
+</script></body></html>

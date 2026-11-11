@@ -1,1 +1,86 @@
-
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Print edition</title>
+<style>
+@font-face{font-family:"Zilla Slab";src:local("Zilla Slab Bold"),local("ZillaSlab-Bold"),url(/fonts/ZillaSlab-Bold.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:Literata;src:local(Literata),url(/fonts/Literata-Regular.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:Literata;src:local("Literata Bold"),url(/fonts/Literata-Bold.woff2) format("woff2");font-weight:700;font-display:swap}
+:root{--ink:#111;--green:#1b5510;--orange:#e8690f;--rule:#b9b6ad;--head:"Zilla Slab","Roboto Slab",Rockwell,"Noto Serif",Georgia,serif;--text:Literata,Charter,"Noto Serif",Georgia,serif}
+body.mono{--green:#111;--orange:#111}
+*{box-sizing:border-box}body{margin:0;background:#e9e7e1;color:var(--ink);font:9.5pt/1.4 var(--text)}
+.bar{position:sticky;top:0;z-index:9;background:#fff;border-bottom:1px solid #bbb;padding:8px 12px;display:flex;gap:12px;align-items:center;justify-content:space-between;font:700 12px var(--head)}
+.bar button{font:700 12px var(--head);letter-spacing:.06em;text-transform:uppercase;background:#1b5510;color:#fff;border:0;padding:9px 14px;border-radius:2px}
+.sheet{background:#fff;margin:10px auto;padding:10mm;max-width:var(--w,297mm)}
+@media print{body{background:#fff}.bar{display:none}.sheet{margin:0;padding:0;max-width:none}}
+.mast{text-align:center;padding-bottom:3mm}.mast img{height:22mm;width:auto;margin:0 4mm;vertical-align:middle}
+.dateline{display:flex;justify-content:space-between;font:700 8pt var(--head);letter-spacing:.1em;text-transform:uppercase;border-top:3pt double var(--ink);border-bottom:.75pt solid var(--rule);padding:1.5mm 0;margin-bottom:5mm}
+.top{display:grid;grid-template-columns:3fr 1fr;gap:6mm;margin-bottom:5mm}
+article img{display:block;width:100%;max-height:90mm;object-fit:cover;filter:grayscale(1) contrast(1.1);margin-bottom:2mm}
+h1{font:700 32pt/1.04 var(--head);margin:1mm 0 2mm;letter-spacing:-.01em}h2{font:700 15pt/1.1 var(--head);margin:1mm 0 1.5mm}
+.by{font:700 7pt var(--head);letter-spacing:.1em;text-transform:uppercase;color:#555;margin-bottom:2mm}
+article p{margin:0 0 2mm;text-align:justify;hyphens:auto}article ul{margin:0;padding:0;list-style:none}
+article li{position:relative;padding-left:3.5mm;margin-bottom:1.5mm}article li:before{content:"";position:absolute;left:0;top:.6em;width:1.6mm;height:1.6mm;background:var(--orange)}
+.lead p{font-size:11pt}
+.corr{border-left:2pt solid var(--green);padding:1mm 2.5mm;margin-top:2mm;font-size:8.5pt;background:#f3f1ec}
+.cols{column-count:3;column-gap:6mm;column-rule:.5pt solid var(--rule)}.cols article,.cols .blk{break-inside:avoid;margin:0 0 5mm}
+.sec{margin-top:6mm}.sec>h3,.blk>h3{font:700 8pt var(--head);letter-spacing:.1em;text-transform:uppercase;color:var(--green);border-top:1.5pt solid var(--ink);padding-top:1.5mm;margin:0 0 2mm}
+.pb{break-before:page}.face{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-bottom:6mm}.face>div{border-top:2pt solid var(--ink);padding-top:2mm}
+.face .tagp{font:700 8pt var(--head);letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
+table.led{width:100%;border-collapse:collapse;font-size:9pt}.led td,.led th{padding:1mm 1.5mm;border-bottom:.5pt solid var(--rule);text-align:right}.led th{font:700 7.5pt var(--head);letter-spacing:.08em;text-transform:uppercase}.led td:first-child,.led th:first-child{text-align:left}
+.row2{display:flex;justify-content:space-between;gap:3mm;border-bottom:.5pt solid var(--rule);padding:.8mm 0}
+.nt{margin-bottom:2.5mm;break-inside:avoid}.nt b{font:700 9.5pt var(--head)}.nt .k{font:700 7pt var(--head);letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
+.dir{column-count:4;column-gap:5mm;column-rule:.5pt solid var(--rule);font-size:8.5pt}.biz{break-inside:avoid;margin-bottom:2.2mm}.biz b{font-family:var(--head)}.biz .v{font:700 6.5pt var(--head);letter-spacing:.08em;text-transform:uppercase;color:var(--green);border:.5pt solid var(--green);padding:0 1mm;margin-left:1mm}
+.back{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm;align-items:start;text-align:center}.qr svg{width:30mm;height:30mm}.ql{font:700 9pt var(--head);margin-top:1.5mm}.qu{font-size:7.5pt;color:#555;word-break:break-all}.qrfail{width:30mm;height:30mm;border:.75pt dashed var(--rule);margin:auto;display:grid;place-items:center;font-size:7pt}
+.ad{border:1pt dashed var(--rule);height:42mm;display:grid;place-items:center;font:700 9pt var(--head);letter-spacing:.08em;text-transform:uppercase;color:#777;margin-top:6mm}
+</style></head><body>
+<div class="bar"><span id="hint">Preview. Use Print, then choose Save as PDF.</span><button onclick="print()">Print / Save as PDF</button></div>
+<div class="sheet" id="sheet"><p>Loading...</p></div>
+<script>
+const $=s=>document.querySelector(s),el=(t,p={},k=[])=>{const n=Object.assign(document.createElement(t),p);n.append(...k);return n};
+const Q=new URLSearchParams(location.search),SIZES={A3:'297mm 420mm',A4:'210mm 297mm',Tabloid:'11in 17in'},size=SIZES[Q.get('size')]?Q.get('size'):'A3';
+document.head.append(el('style',{textContent:`@page{size:${SIZES[size]};margin:10mm}:root{--w:${SIZES[size].split(' ')[0]}}`}));
+if(Q.get('ink')!=='colour')document.body.classList.add('mono');
+const safe=u=>{try{const x=new URL(u,location.href);return['http:','https:'].includes(x.protocol)?x.href:''}catch{return''}};
+const when=x=>new Date(x).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+const PN={review:'The County Review',roundup:'County Roundup',both:'Both papers'};
+const loadQR=()=>new Promise(ok=>{const s=el('script',{src:'/vendor/qrcode.min.js',onload:ok,onerror:()=>{document.head.append(el('script',{src:'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',onload:ok,onerror:ok}))}});document.head.append(s)});
+const qr=(url,label)=>{const b=el('div',{className:'qr'});try{const q=qrcode(0,'M');q.addData(url);q.make();b.innerHTML=q.createSvgTag(4,0)}catch{b.append(el('div',{className:'qrfail',textContent:'QR not available'}))}b.append(el('div',{className:'ql',textContent:label}),el('div',{className:'qu',textContent:url.replace(/^https?:\/\//,'')}));return b};
+function art(s,lead){const a=el('article',{className:lead?'lead':''}),im=safe(s.image_url);
+  if(im)a.append(el('img',{src:im,alt:''}));
+  a.append(el(lead?'h1':'h2',{textContent:s.headline}),el('div',{className:'by',textContent:`By ${s.reporter||'County Desk'} · ${s.area}${s.place_name?', '+s.place_name:''} · ${when(s.approved_at)}`}));
+  if(s.body)s.body.split(/\n+/).filter(Boolean).forEach(p=>a.append(el('p',{textContent:p})));else a.append(el('ul',{},s.bullets.map(b=>el('li',{textContent:b}))));
+  if(s.corrections?.length)a.append(el('div',{className:'corr',textContent:'Correction: '+s.corrections[0].note}));return a}
+const sec=(t,k,cls='')=>el('section',{className:'sec '+cls},[el('h3',{textContent:t}),...k]);
+(async()=>{try{
+  const r=await fetch('/api/print/data?'+new URLSearchParams({ids:Q.get('ids')||'',sub_county:Q.get('sub_county')||''})),d=await r.json();if(!r.ok)throw new Error(d.error);
+  await loadQR();
+  const slug=(Q.get('edition')||'edition').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30)||'edition',base=(d.url||location.origin).replace(/\/$/,''),appUrl=`${base}/q/print-${slug}`;
+  const S=d.stories,lead=S[0],rest=S.slice(1),byId=new Map(rest.map(s=>[s.id,s])),pairs=[],paired=new Set();
+  rest.forEach(s=>{const p=s.pair_id&&byId.get(s.pair_id);if(p&&!paired.has(s.id)&&!paired.has(p.id)){pairs.push([s,p]);paired.add(s.id);paired.add(p.id)}});
+  const area=Q.get('sub_county')?(lead?.area||''):'Taita Taveta County',m=Q.get('mast')||'both';
+  const sheet=el('div',{className:'sheet',id:'sheet'});
+  sheet.append(el('div',{className:'mast'},[...(m!=='roundup'?[el('img',{src:'/logo-review.png',alt:'The County Review'})]:[]),...(m!=='review'?[el('img',{src:'/logo-roundup.png',alt:'County Roundup'})]:[])]),
+    el('div',{className:'dateline'},[el('span',{textContent:`${Q.get('edition')||''}  ${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`}),el('span',{textContent:`${area} · Free`})]));
+  if(lead)sheet.append(el('div',{className:'top'},[art(lead,true),el('div',{},[qr(appUrl,'Read more and get daily news'),...(d.contact?[el('div',{style:'height:5mm'}),qr('https://wa.me/'+d.contact,'Prices and alerts on WhatsApp')]:[])])]));
+  const others=rest.filter(s=>!paired.has(s.id));if(others.length)sheet.append(el('div',{className:'cols'},others.map(s=>art(s,false))));
+  if(pairs.length)sheet.append(sec('They say, we say',pairs.map(([a,b])=>el('div',{className:'face'},[a,b].map(x=>el('div',{},[el('div',{className:'tagp',textContent:PN[x.paper]||x.paper}),art(x,false)])))),'pb'));
+  const nums=[];
+  if(d.prices.length){const areas=[...new Set(d.prices.map(p=>p.area))],coms=[...new Set(d.prices.map(p=>p.commodity))],mo=c=>(d.prices.find(p=>p.commodity===c&&p.benchmark_price)||{}).benchmark_price;
+    nums.push(el('div',{className:'blk'},[el('h3',{textContent:'Market prices (KSh)'}),el('table',{className:'led'},[el('tr',{},[el('th',{textContent:''}),...areas.map(a=>el('th',{textContent:a})),el('th',{textContent:'Mombasa'})]),...coms.map(c=>el('tr',{},[el('td',{textContent:c}),...areas.map(a=>{const p=d.prices.find(x=>x.commodity===c&&x.area===a);return el('td',{textContent:p?Number(p.local_price):'-'})}),el('td',{textContent:mo(c)?Number(mo(c)):'-'})]))])]))}
+  if(d.markets.length)nums.push(el('div',{className:'blk'},[el('h3',{textContent:'Market days'}),...d.markets.map(x=>el('div',{className:'row2'},[el('span',{textContent:`${x.name}${Q.get('sub_county')?'':' ('+x.area+')'}`}),el('b',{textContent:x.days.join(', ')})]))]));
+  const sp=d.sport;if(sp.results.length||sp.fixtures.length||sp.table.length)nums.push(el('div',{className:'blk'},[el('h3',{textContent:'Sport'}),
+    ...sp.results.map(x=>el('div',{className:'row2'},[el('span',{textContent:`${x.home} ${x.home_goals}-${x.away_goals} ${x.away}`})])),
+    ...(sp.fixtures.length?[el('div',{className:'by',textContent:'Next fixtures',style:'margin-top:2mm'}),...sp.fixtures.map(x=>el('div',{className:'row2'},[el('span',{textContent:`${x.home} v ${x.away}`}),el('span',{textContent:new Date(x.kickoff).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})})]))]:[]),
+    ...(sp.table.length?[el('div',{className:'by',textContent:(sp.league||'League')+' table',style:'margin-top:2mm'}),...sp.table.map((x,i)=>el('div',{className:'row2'},[el('span',{textContent:`${i+1}. ${x.team}`}),el('b',{textContent:`P${x.p}  GD${x.gd>0?'+':''}${x.gd}  ${x.pts}`})]))]:[])]));
+  const LB={job:'Job',tender:'Tender',event:'Event',notice:'Public notice',obituary:'Obituary'};
+  d.notices.forEach(n=>nums.push(el('div',{className:'nt'},[el('div',{className:'k',textContent:LB[n.kind]||n.kind}),el('b',{textContent:n.title}),el('div',{textContent:n.body.slice(0,260)+(n.event_date?' ('+String(n.event_date).slice(0,10)+')':'')})])));
+  if(nums.length)sheet.append(sec('Today in Taita Taveta',[el('div',{className:'cols'},nums)],'pb'));
+  const BL=d.boards||[],mem=b=>el('div',{className:'nt'},[el('div',{className:'k',textContent:b.extra.years||'In memory'}),el('b',{textContent:b.title}),el('div',{textContent:b.summary}),el('div',{className:'by',textContent:[b.event_date&&'Funeral '+String(b.event_date).slice(0,10),b.venue,b.extra.paybill&&'Contributions '+b.extra.paybill].filter(Boolean).join(' · ')})]);
+  const lg=BL.filter(b=>b.board==='legal'),rm=BL.filter(b=>b.board==='memorial'),ce=BL.filter(b=>b.board==='celebration');
+  if(lg.length)sheet.append(sec('Legal notices',[el('div',{className:'cols'},lg.map(b=>el('div',{className:'nt'},[el('div',{className:'k',textContent:b.extra.notice_kind||'Legal notice'}),el('b',{textContent:b.title}),el('div',{textContent:b.summary}),el('div',{className:'by',textContent:[b.extra.case_no,b.extra.court,b.extra.order_date&&'Order '+b.extra.order_date,b.extra.advocate].filter(Boolean).join(' · ')})])))]));
+  if(rm.length)sheet.append(sec('Remembrance',[el('div',{className:'cols'},rm.map(mem))]));
+  if(ce.length)sheet.append(sec('Celebrations',[el('div',{className:'cols'},ce.map(b=>el('div',{className:'nt'},[el('b',{textContent:b.title}),el('div',{textContent:b.summary})])))]));
+  if(d.merchants.length)sheet.append(sec('Business directory',[el('div',{className:'dir'},d.merchants.map(b=>el('div',{className:'biz'},[el('b',{textContent:b.business_name}),...(b.verified?[el('span',{className:'v',textContent:'Verified'})]:[]),el('div',{textContent:b.tagline}),el('div',{textContent:`WhatsApp +${b.whatsapp}${Q.get('sub_county')?'':' · '+b.area}`})])))]));
+  sheet.append(sec('Get it on your phone',[el('div',{className:'back'},[qr(appUrl,'Free daily news, prices and alerts'),...(d.contact?[qr('https://wa.me/'+d.contact,'Chat with us on WhatsApp')]:[]),qr(`${base}/biashara.html`,'List your business')]),el('div',{className:'ad',textContent:'Your advert here'}),el('div',{className:'ad',textContent:'Your advert here'})],'pb'));
+  $('#sheet').replaceWith(sheet);
+ }catch(e){$('#sheet').replaceChildren(el('p',{textContent:e.message||'Could not build the edition.'}))}})();
+</script></body></html>
