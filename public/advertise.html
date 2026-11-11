@@ -1,1 +1,16 @@
-
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Advertise with us</title><link rel="stylesheet" href="/style.css"></head>
+<body class="form page"><div class="mast"><img src="/logo-review.png" alt="The County Review"><img src="/logo-roundup.png" alt="County Roundup"></div>
+<h1>Advertise with us</h1>
+<p>Reach people in Voi, Taveta, Mwatate and Wundanyi through the app, WhatsApp, QR posters and the printed supplement. These are our own live numbers.</p>
+<div id="out"><p class="msg">Loading...</p></div>
+<script>
+const $=s=>document.querySelector(s),el=(t,p={},k=[])=>{const n=Object.assign(document.createElement(t),p);n.append(...k);return n};
+const row=(a,b)=>el('div',{className:'row'},[el('span',{textContent:a}),el('b',{textContent:String(b)})]);
+(async()=>{try{const [s,r]=await Promise.all([fetch('/api/stats').then(x=>x.json()),fetch('/api/rates').then(x=>x.json())]),e=s.events||{};
+ const sec=(t,k)=>el('section',{},[el('h3',{textContent:t}),...k]);
+ $('#out').replaceChildren(
+  sec('Our audience, last '+s.days+' days',[row('Feed views',e.page_view||0),row('QR poster scans',e.qr_scan||0),row('Home screen installs',e.install||0),row('Issue downloads',e.issue_download||0),row('Video plays',e.video_play||0),row('Taps on business listings',e.merchant_tap||0),row('WhatsApp conversations started',e.wa_message||0),row('People on WhatsApp',s.whatsapp.total),row('Stories published',s.stories),row('Active business listings',s.active_listings),...s.views_by_area.map(a=>row('Views in '+a.name,a.n)),el('p',{className:'msg',textContent:'Views are page loads, not unique people. Numbers are counted by us and refreshed every few minutes.'})]),
+  sec('Rates',[...r.rates.map(x=>el('div',{className:'note'},[el('b',{textContent:`${x.name}: KSh ${x.price_kes.toLocaleString()} per ${x.unit}`}),el('p',{textContent:x.details||''})])),...(r.contact?[el('a',{className:'cta',href:'https://wa.me/'+r.contact,textContent:'Talk to us on WhatsApp'})]:[])]));
+ }catch{$('#out').replaceChildren(el('p',{className:'msg',textContent:'Could not load. Check your connection.'}))}})();
+</script></body></html>

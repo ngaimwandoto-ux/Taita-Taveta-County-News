@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Is this true?</title><link rel="stylesheet" href="/style.css"></head>
+<body class="form page"><div class="mast"><img src="/logo-review.png" alt="The County Review"><img src="/logo-roundup.png" alt="County Roundup"></div>
+<h1>Is this true?</h1><p>Heard a rumour? Send it to us. We check it and publish a verified answer in the app under Notices, Fact checks.</p>
+<label for="t">What did you hear? <small>(who is saying what, and where)</small></label><textarea id="t" rows="5" maxlength="1000"></textarea>
+<label for="s">Where?</label><select id="s"><option value="voi">Voi</option><option value="taveta">Taveta</option><option value="mwatate">Mwatate</option><option value="wundanyi">Wundanyi</option></select>
+<label for="c">Your phone number <small>(optional, 2547XXXXXXXX, only if you are happy for us to call)</small></label><input id="c" inputmode="numeric">
+<input id="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+<button id="go" type="button">Send for checking</button><div id="m" hidden role="status"></div>
+<script>
+const $=s=>document.querySelector(s);
+$('#go').onclick=async()=>{const m=$('#m');m.hidden=false;m.className='';m.textContent='Sending...';
+ try{const r=await fetch('/api/tips',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({kind:'claim',text:$('#t').value,sub_county:$('#s').value,contact:$('#c').value,website:$('#website').value})});
+  const d=await r.json();if(!r.ok)throw new Error(d.error);
+  m.textContent='Thank you. We will check it and publish an answer.';$('#t').value=''}catch(e){m.className='e';m.textContent=e.message||'Could not send. Check your connection and try again.'}};
+</script></body></html>

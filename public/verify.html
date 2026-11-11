@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Get verified</title><link rel="stylesheet" href="/style.css"></head>
+<body class="form page"><div class="mast"><img src="/logo-review.png" alt="The County Review"><img src="/logo-roundup.png" alt="County Roundup"></div>
+<h1>Get a Verified badge</h1>
+<p>A Verified badge tells customers we have checked your business. You pay once a year. After payment our team contacts you, confirms your business and premises, and then the badge appears on your listing. You need an active listing first.</p>
+<label for="w">WhatsApp number on your listing <small>(2547XXXXXXXX)</small></label><input id="w" inputmode="numeric">
+<label for="p">M-Pesa number to pay from <small>(2547XXXXXXXX)</small></label><input id="p" inputmode="numeric">
+<button id="go" type="button">Pay and request verification</button><div id="m" hidden role="status"></div>
+<script>
+const $=s=>document.querySelector(s);
+$('#go').onclick=async()=>{const m=$('#m');m.hidden=false;m.className='';m.textContent='Sending...';
+ try{const r=await fetch('/api/verify/request',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({whatsapp:$('#w').value,phone:$('#p').value})});const d=await r.json();if(!r.ok)throw new Error(d.error);m.textContent=d.message}catch(e){m.className='e';m.textContent=e.message||'Something went wrong. Try again.'}};
+</script></body></html>
