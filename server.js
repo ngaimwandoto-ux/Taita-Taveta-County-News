@@ -1053,4 +1053,251 @@ app.post('/api/desk/venues/:id/delete', crew, async (req, res) => {
   const v = await venueFor(req, res, req.params.id); if (!v) return;
   await db.query('UPDATE venues SET active=FALSE WHERE id=$1', [v.id]); res.json({ ok: true });
 });
-app.post('/api/desk/venues/:id/promo', admin, async (req, res) => {                  // a paid "tonight" line pinned to
+app.post('/api/desk/venues/:id/promo', admin, async (req, res) => {                  // a paid "tonight" line pinned to the top
+  const days = parseInt(req.body?.days, 10), text = String(req.body?.text || '').trim().slice(0, 200);
+  if (!text || !(days >= 1 && days <= 30)) return fail(res, 400, 'Write the promo line and a number of days from 1 to 30');
+  const r = await db.query('UPDATE venues SET promo_text=$2, promo_until=CURRENT_DATE + $3::int WHERE id=$1 AND active RETURNING id', [req.params.id, text, days]);
+  if (!r.rowCount) return fail(res, 404, 'Venue not found'); log(req.user, 'venue_promo', req.params.id, text); res.json({ ok: true });
+});
+app.post('/api/desk/menu', crew, async (req, res) => {
+  const b = req.body || {}, v = await venueFor(req, res, b.venue_id); if (!v) return;
+  const price = parseInt(b.price_kes, 10), item = String(b.item || '').trim().slice(0, 80);
+  if (!item || !(price > 0 && price < 100000) || !['food', 'drink'].includes(b.category)) return fail(res, 400, 'Need an item, a price and food or drink');
+  await db.query('UPDATE menu_items SET active=FALSE WHERE venue_id=$1 AND lower(item)=lower($2)', [v.id, item]);
+  const r = await db.query('INSERT INTO menu_items(venue_id,item,price_kes,category) VALUES($1,$2,$3,$4) RETURNING id', [v.id, item, price, b.category]);
+  await db.query('UPDATE venues SET menu_verified_at=NOW() WHERE id=$1', [v.id]); res.status(201).json({ id: r.rows[0].id });
+});
+app.post('/api/desk/menu/:id/delete', crew, async (req, res) => {
+  const m = (await db.query('SELECT venue_id FROM menu_items WHERE id=$1', [req.params.id])).rows[0];
+  if (!m || !(await venueFor(req, res, m.venue_id))) return;
+  await db.query('UPDATE menu_items SET active=FALSE WHERE id=$1', [req.params.id]); res.json({ ok: true });
+});
+
+// Video podcasts: one show per topic, episodes added by the editor
+const okUrl = u => { try { return ['http:', 'https:'].includes(new URL(u).protocol); } catch { return false; } };
+app.get('/api/podcasts', async (req, res) => {
+  const r = await db.query(`SELECT id, topic, title, video_url, thumb_url, created_at FROM episodes
+    WHERE ($1::text IS NULL OR topic=$1) ORDER BY created_at DESC LIMIT 20`, [req.query.topic || null]);
+  res.set('Cache-Control', 'public, max-age=60').json(r.rows);
+});
+app.post('/api/desk/episodes', admin, async (req, res) => {
+  const { topic, title, video_url, thumb_url } = req.body || {};
+  if (!String(title || '').trim() || !okUrl(video_url) || (thumb_url && !okUrl(thumb_url))) return fail(res, 400, 'Need a title and a valid video link (https://...)');
+  try {
+    const r = await db.query('INSERT INTO episodes(topic,title,video_url,thumb_url) VALUES($1,$2,$3,$4) RETURNING id',
+      [topic || 'general', title.trim().slice(0, 150), video_url, thumb_url || null]);
+    res.status(201).json({ id: r.rows[0].id });
+  } catch (e) { fail(res, 400, 'Check the topic value'); }
+});
+
+// KES 600 business listing: M-Pesa STK push
+async function mpesaToken() {
+  const r = await axios.get(`${E.MPESA_BASE}/oauth/v1/generate?grant_type=client_credentials`, { auth: { username: E.MPESA_KEY, password: E.MPESA_SECRET } });
+  return r.data.access_token;
+}
+app.post('/api/biashara/register', strict, async (req, res) => {
+  const { sub_county, business_name, tagline, whatsapp, phone, category, latitude, longitude } = req.body || {};
+  const sid = await subId(sub_county || '');
+  if (!sid || !business_name || !tagline || !/^254[17]\d{8}$/.test(phone || '') || !/^254\d{9}$/.test(whatsapp || ''))
+    return fail(res, 400, 'Check the details. Phone numbers must look like 2547XXXXXXXX.');
+  try {
+    const ts = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
+    const password = Buffer.from(E.MPESA_SHORTCODE + E.MPESA_PASSKEY + ts).toString('base64');
+    const token = await mpesaToken();
+    const r = await axios.post(`${E.MPESA_BASE}/mpesa/stkpush/v1/processrequest`, {
+      BusinessShortCode: E.MPESA_SHORTCODE, Password: password, Timestamp: ts, TransactionType: 'CustomerPayBillOnline',
+      Amount: PRICE, PartyA: phone, PartyB: E.MPESA_SHORTCODE, PhoneNumber: phone,
+      CallBackURL: `${E.PUBLIC_URL}/api/mpesa-callback/${E.MPESA_CALLBACK_SECRET}`,
+      AccountReference: business_name.slice(0, 12), TransactionDesc: `${DAYS}-day listing`
+    }, { headers: { Authorization: `Bearer ${token}` } });
+    await db.query(`INSERT INTO merchants(sub_county_id,business_name,tagline,whatsapp,checkout_request_id,category,latitude,longitude,report_token) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [sid, business_name.slice(0, 100), tagline.slice(0, 150), whatsapp, r.data.CheckoutRequestID, String(category || 'other').slice(0, 30), Number(latitude) || null, Number(longitude) || null, crypto.randomBytes(16).toString('hex')]);
+    res.json({ message: 'Check your phone and enter your M-Pesa PIN.' });
+  } catch (e) { console.error(e.response?.data || e.message); fail(res, 502, 'Could not start payment. Try again.'); }
+});
+
+// Callback: secret in the URL, amount checked, receipt stored once
+app.post('/api/mpesa-callback/:secret', async (req, res) => {
+  res.status(200).json({ ResultCode: 0, ResultDesc: 'Accepted' });
+  if (req.params.secret !== E.MPESA_CALLBACK_SECRET) return;
+  try {
+    const cb = req.body.Body.stkCallback;
+    if (cb.ResultCode !== 0) { await db.query(`UPDATE charges SET status='failed' WHERE checkout_request_id=$1 AND status='pending'`, [cb.CheckoutRequestID]); return; }
+    const meta = Object.fromEntries(cb.CallbackMetadata.Item.map(i => [i.Name, i.Value]));
+    const ch = (await db.query('SELECT * FROM charges WHERE checkout_request_id=$1', [cb.CheckoutRequestID])).rows[0];
+    if (ch) return void await settleCharge(ch, meta);                         // badge or ticket payment
+    if (Number(meta.Amount) < PRICE) return;                                   // otherwise a business listing
+    const m = await db.query('SELECT id FROM merchants WHERE checkout_request_id=$1', [cb.CheckoutRequestID]);
+    if (!m.rowCount) return;
+    const ins = await db.query(`INSERT INTO payments(merchant_id,mpesa_receipt,amount) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING id`,
+      [m.rows[0].id, meta.MpesaReceiptNumber, meta.Amount]);
+    if (ins.rowCount) await db.query(`UPDATE merchants SET status='ACTIVE', expires_at=NOW() + ($2 || ' days')::interval WHERE id=$1`, [m.rows[0].id, DAYS]);
+  } catch (e) { console.error('callback', e.message); }
+});
+
+// Utility layer: notices, alerts, prices, search, insights
+app.get('/api/utility/:slug', async (req, res) => {
+  const sid = await subId(req.params.slug);
+  if (!sid) return fail(res, 404, 'Unknown sub-county');
+  const kinds = String(req.query.kinds || '').split(',').filter(Boolean);
+  const r = await db.query(`SELECT id, kind, lang, title, body, urgent, event_date, created_at FROM notices
+    WHERE (sub_county_id=$1 OR sub_county_id IS NULL) AND (expires_on IS NULL OR expires_on >= CURRENT_DATE)
+      AND ($2::text[] IS NULL OR kind = ANY($2)) AND (kind NOT IN ('guide','history') OR $3::text IS NULL OR lang=$3)
+    ORDER BY urgent DESC, created_at DESC LIMIT 40`, [sid, kinds.length ? kinds : null, req.query.lang || null]);
+  res.set('Cache-Control', 'public, max-age=60').json(r.rows);
+});
+app.get('/api/alerts', async (req, res) => {
+  const r = await db.query(`SELECT n.id, n.title, n.body, sc.name AS area FROM notices n LEFT JOIN sub_counties sc ON sc.id=n.sub_county_id
+    WHERE n.kind='alert' AND (n.expires_on IS NULL OR n.expires_on >= CURRENT_DATE) AND n.created_at > NOW() - INTERVAL '3 days'
+    ORDER BY n.created_at DESC LIMIT 3`);
+  res.json(r.rows);
+});
+app.get('/api/search', async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (q.length < 2) return res.json({ stories: [], notices: [] });
+  const like = `%${q.replace(/[%_]/g, '')}%`;
+  const [stories, notices] = await Promise.all([
+    db.query(`SELECT id, headline, topic FROM stories WHERE status='approved' AND headline ILIKE $1 ORDER BY created_at DESC LIMIT 10`, [like]),
+    db.query(`SELECT id, kind, title, body FROM notices WHERE (title ILIKE $1 OR body ILIKE $1) ORDER BY created_at DESC LIMIT 10`, [like])]);
+  res.json({ stories: stories.rows, notices: notices.rows });
+});
+app.post('/api/desk/notices', admin, async (req, res) => {
+  const b = req.body || {};
+  const sid = b.sub_county && b.sub_county !== 'all' ? await subId(b.sub_county) : null;
+  if (!String(b.title || '').trim() || !String(b.body || '').trim() || (b.sub_county && b.sub_county !== 'all' && !sid)) return fail(res, 400, 'Need a title, text and a valid area');
+  try {
+    const r = await db.query(`INSERT INTO notices(kind,sub_county_id,lang,title,body,urgent,event_date,expires_on) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+      [b.kind, sid, b.lang || 'en', b.title.trim().slice(0, 150), b.body.trim().slice(0, 4000), b.kind === 'alert' || !!b.urgent, b.event_date || null, b.expires_on || null]);
+    res.status(201).json({ id: r.rows[0].id });
+  } catch (e) { fail(res, 400, 'Check the type and dates'); }
+});
+app.post('/api/desk/prices', admin, async (req, res) => {
+  const sid = await subId(req.body?.sub_county || '');
+  const items = (req.body?.items || []).filter(i => i.commodity && Number(i.local_price) > 0);
+  if (!sid || !items.length) return fail(res, 400, 'Need a sub-county and at least one price');
+  for (const i of items) await db.query(`INSERT INTO market_prices(sub_county_id,commodity,local_price,benchmark_price) VALUES($1,$2,$3,$4)
+    ON CONFLICT (sub_county_id,commodity) DO UPDATE SET local_price=$3, benchmark_price=$4, updated_at=NOW()`,
+    [sid, String(i.commodity).slice(0, 50), Number(i.local_price), Number(i.benchmark_price) || null]);
+  await db.query(`INSERT INTO price_history(sub_county_id,commodity,local_price,benchmark_price) SELECT $1, x->>'commodity', (x->>'local_price')::numeric, NULLIF(x->>'benchmark_price','')::numeric FROM jsonb_array_elements($2::jsonb) x`,
+    [sid, JSON.stringify(items.map(i => ({ commodity: String(i.commodity).slice(0, 50), local_price: Number(i.local_price), benchmark_price: Number(i.benchmark_price) || '' })))]);
+  res.json({ saved: items.length });
+});
+app.get('/api/desk/insights', admin, async (req, res) => {   // anonymised, aggregated: what you can sell to planners and agribusiness
+  const [ev, pr, mc] = await Promise.all([
+    db.query(`SELECT e.kind, COALESCE(sc.name,'county') AS area, COUNT(*)::int AS n FROM events e LEFT JOIN sub_counties sc ON sc.id=e.sub_county_id
+              WHERE e.created_at > NOW() - INTERVAL '30 days' GROUP BY 1,2 ORDER BY n DESC`),
+    db.query(`SELECT commodity, ROUND(AVG(local_price),0) AS avg_local, ROUND(AVG(benchmark_price),0) AS avg_mombasa FROM market_prices GROUP BY 1 ORDER BY 1`),
+    db.query(`SELECT category, COUNT(*)::int AS active FROM merchants WHERE status='ACTIVE' AND expires_at > NOW() GROUP BY 1`)]);
+  const wa = (await db.query('SELECT COUNT(*)::int AS n FROM wa_users WHERE subscribed')).rows[0].n;
+  res.json({ last_30_days_activity: ev.rows, price_averages: pr.rows, active_businesses: mc.rows, whatsapp_subscribers: wa });
+});
+
+// WhatsApp: people message your number and get today's card. Replies inside 24h of their message need no template.
+const SUBS = ['voi', 'taveta', 'mwatate', 'wundanyi'];
+const TX = { en: { prices: 'Prices today', alerts: 'ALERTS', news: 'Top stories', roads: 'Roads and transport', none: 'Nothing posted yet.', foot: 'Reply NEWS, PRICES, ALERTS, JOBS, TENDERS, EVENTS, SPORTS, MARKET, FARES, ROADS, CLINICS, RIP, LEGAL, LOST, MISSING, CHAMA, FACTS or a town (Voi, Taveta, Mwatate, Wundanyi). SUBSCRIBE or STOP. KISWAHILI for Swahili. TIP + your news to send us a story. CHECK + a claim to verify.' },
+             sw: { prices: 'Bei za leo', alerts: 'TAHADHARI', news: 'Habari kuu', roads: 'Barabara na usafiri', none: 'Hakuna bado.', foot: 'Jibu HABARI, BEI, TAHADHARI, KAZI, ZABUNI, MATUKIO, MICHEZO, SOKO, NAULI, BARABARA, ZAHANATI, MAZISHI, SHERIA, POTEA, KUPOTEA, UKWELI au mji (Voi, Taveta, Mwatate, Wundanyi). JIUNGE au ACHA. ENGLISH kwa Kiingereza. RIPOTI + habari yako kutuma. KAGUA + jambo la kuthibitisha.' } };
+const waSend = (to, text) => axios.post(`https://graph.facebook.com/v20.0/${E.WA_PHONE_ID}/messages`,
+  { messaging_product: 'whatsapp', to, type: 'text', text: { body: text.slice(0, 3500) } }, { headers: { Authorization: `Bearer ${E.WA_TOKEN}` } });
+async function section(name, sid, lang) {
+  const t = TX[lang];
+  if (name === 'prices') {
+    const r = await db.query('SELECT commodity, local_price, benchmark_price FROM market_prices WHERE sub_county_id=$1 AND updated_at > NOW() - make_interval(days => 7) ORDER BY commodity', [sid]);
+    return r.rows.map(p => `${p.commodity}: KSh ${Number(p.local_price)}` + (p.benchmark_price ? ` (Mombasa ${Number(p.benchmark_price)})` : '')).join('\n');
+  }
+  if (name === 'alerts') {
+    const r = await db.query(`SELECT title, body FROM notices WHERE kind='alert' AND (sub_county_id=$1 OR sub_county_id IS NULL) AND (expires_on IS NULL OR expires_on >= CURRENT_DATE) AND created_at > NOW() - INTERVAL '3 days' ORDER BY created_at DESC LIMIT 3`, [sid]);
+    return r.rows.map(a => `${a.title}. ${a.body}`).join('\n');
+  }
+  if (name === 'news') {
+    const r = await db.query(`SELECT headline FROM stories WHERE status='approved' AND sub_county_id=$1 ORDER BY created_at DESC LIMIT 3`, [sid]);
+    return r.rows.map((s, i) => `${i + 1}. ${s.headline}`).join('\n');
+  }
+  const r = await db.query(`SELECT title, body FROM notices WHERE kind='transport' AND (sub_county_id=$1 OR sub_county_id IS NULL) AND (expires_on IS NULL OR expires_on >= CURRENT_DATE) ORDER BY created_at DESC LIMIT 2`, [sid]);
+  return r.rows.map(a => `${a.title}. ${a.body}`).join('\n');
+}
+async function waCard(sid, name, lang, only) {
+  const t = TX[lang], parts = only ? [only] : ['alerts', 'prices', 'roads', 'news'];
+  const out = [`*${name.toUpperCase()}*`];
+  for (const p of parts) { const s = await section(p === 'roads' ? 'roads' : p, sid, lang); if (s || only) out.push(`*${t[p]}*\n${s || t.none}`); }
+  out.push(`${E.PUBLIC_URL || ''}\n\n${t.foot}`);
+  return out.join('\n\n');
+}
+async function waHandle(from, text) {
+  await db.query('INSERT INTO wa_users(phone) VALUES($1) ON CONFLICT DO NOTHING', [from]);
+  let u = (await db.query('SELECT * FROM wa_users WHERE phone=$1', [from])).rows[0];
+  const t = text.trim().toLowerCase();
+  const mentioned = SUBS.find(s => t.includes(s));
+  if (mentioned) { const id = await subId(mentioned); await db.query('UPDATE wa_users SET sub_county_id=$2 WHERE phone=$1', [from, id]); u.sub_county_id = id; }
+  if (/^(swahili|kiswahili)/.test(t)) { await db.query(`UPDATE wa_users SET lang='sw' WHERE phone=$1`, [from]); u.lang = 'sw'; }
+  if (/^english/.test(t)) { await db.query(`UPDATE wa_users SET lang='en' WHERE phone=$1`, [from]); u.lang = 'en'; }
+  const lang = u.lang;
+  if (/^(stop|acha|unsubscribe)/.test(t)) { await db.query('UPDATE wa_users SET subscribed=FALSE WHERE phone=$1', [from]); return lang === 'sw' ? 'Umeachishwa. Jibu JIUNGE kuanza tena.' : 'You are unsubscribed. Reply SUBSCRIBE to start again.'; }
+  if (/^(subscribe|jiunge)/.test(t)) { await db.query('UPDATE wa_users SET subscribed=TRUE WHERE phone=$1', [from]); return lang === 'sw' ? 'Umejiunga. Asante!' : 'You are subscribed. Thank you!'; }
+  const chk = text.trim().match(/^(check|kagua)\b[:\s-]*([\s\S]*)$/i);
+  if (chk) {
+    const slug = u.sub_county_id ? (await db.query('SELECT slug FROM sub_counties WHERE id=$1', [u.sub_county_id])).rows[0].slug : null;
+    const r = await createTip({ text: chk[2], slug, contact: from, source: 'whatsapp', who: whoHash(from), kind: 'claim' });
+    return r.error || (lang === 'sw' ? 'Asante. Tutakagua na kujibu hapa baada ya kuthibitisha.' : 'Thank you. We will check this. Verified answers are published in the app under Notices, Fact checks (reply FACTS to see the latest).');
+  }
+  const tipM = text.trim().match(/^(tip|ripoti)\b[:\s-]*([\s\S]*)$/i);
+  if (tipM) {
+    const slug = u.sub_county_id ? (await db.query('SELECT slug FROM sub_counties WHERE id=$1', [u.sub_county_id])).rows[0].slug : null;
+    const r = await createTip({ text: tipM[2], slug, contact: from, source: 'whatsapp', who: whoHash(from) });
+    return r.error || (lang === 'sw' ? 'Asante! Tuma picha sasa ikiwa unayo. Hatutachapisha jina lako bila ruhusa.' : 'Thank you! Send a photo now if you have one. We never publish your name without asking.');
+  }
+  if (!u.sub_county_id) return `*Taita Taveta County Review & Roundup*\n\nWhich town? Reply: Voi, Taveta, Mwatate or Wundanyi.\nUnaishi wapi? Jibu: Voi, Taveta, Mwatate au Wundanyi.`;
+  const name = (await db.query('SELECT name FROM sub_counties WHERE id=$1', [u.sub_county_id])).rows[0].name;
+  const KW = { jobs: ['job'], kazi: ['job'], tenders: ['tender'], zabuni: ['tender'], events: ['event'], matukio: ['event'], facts: ['factcheck'], ukweli: ['factcheck'] }, w1 = t.split(/\s+/)[0];
+  if (KW[w1]) return `*${w1.toUpperCase()}*\n\n` + await waList(KW[w1], u.sub_county_id, lang);
+  if (w1 === 'fares' || w1 === 'nauli') return '*FARES*\n\n' + await waFares();
+  if (w1 === 'roads' || w1 === 'barabara' || w1 === 'fog') return '*ROADS AND FOG*\n\n' + await waRoads();
+  if (w1 === 'clinics' || w1 === 'zahanati' || w1 === 'pharmacy') return '*CLINICS AND PHARMACIES*\n\n' + await waClinics(u.sub_county_id);
+  if (w1 === 'rip' || w1 === 'mazishi' || w1 === 'obituaries') return '*REMEMBRANCE*\n\n' + await waBoard('memorial', u.sub_county_id);
+  if (w1 === 'legal' || w1 === 'sheria') return '*LEGAL NOTICES*\n\n' + await waBoard('legal', u.sub_county_id);
+  if (w1 === 'lost' || w1 === 'potea') return '*LOST AND FOUND*\n\n' + await waBoard2('lostfound', u.sub_county_id);
+  if (w1 === 'missing' || w1 === 'kupotea') return '*MISSING PERSONS*\n\n' + await waBoard2('missing', u.sub_county_id);
+  if (w1 === 'chama' || w1 === 'chamas') return '*CHAMAS AND GROUPS*\n\n' + await waBoard2('chama', u.sub_county_id);
+  if (w1 === 'sports' || w1 === 'michezo') return '*SPORT*\n\n' + await waSport(u.sub_county_id, lang);
+  if (w1 === 'market' || w1 === 'soko') return '*MARKET DAYS*\n\n' + await waMarket(u.sub_county_id, lang);
+  const only = /^(news|habari)/.test(t) ? 'news' : /^(prices|bei)/.test(t) ? 'prices' : /^(alert|tahadhari)/.test(t) ? 'alerts' : null;
+  return waCard(u.sub_county_id, name, lang, only);
+}
+app.get('/api/whatsapp', (req, res) =>
+  req.query['hub.mode'] === 'subscribe' && E.WA_VERIFY_TOKEN && req.query['hub.verify_token'] === E.WA_VERIFY_TOKEN ? res.send(req.query['hub.challenge']) : res.sendStatus(403));
+app.post('/api/whatsapp', async (req, res) => {
+  const sig = (req.get('x-hub-signature-256') || '').replace('sha256=', '');
+  const good = E.WA_APP_SECRET && req.rawBody && crypto.createHmac('sha256', E.WA_APP_SECRET).update(req.rawBody).digest('hex');
+  if (!good || sig.length !== good.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(good))) return res.sendStatus(401);
+  res.sendStatus(200);
+  try {
+    const m = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+    if (!m) return;
+    track('wa_message', 'in');
+    if (m.type === 'image') return void await waSend(m.from, await waImage(m));
+    if (m.type !== 'text') return;
+    await waSend(m.from, await waHandle(m.from, m.text.body));
+  } catch (e) { console.error('whatsapp', e.response?.data || e.message); }
+});
+
+// Story map: pins by time period and topic
+app.get('/api/map', async (req, res) => {
+  const d = v => /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : null;
+  const [stories, merchants] = await Promise.all([
+    db.query(`SELECT s.id, s.headline, s.bullets, s.topic, s.image_url, s.video_url, s.latitude, s.longitude, s.place_name, s.created_at, (s.breaking AND s.approved_at > NOW() - INTERVAL '24 hours') AS breaking, c.name AS reporter, (SELECT json_agg(json_build_object('note', x.note, 'at', x.created_at) ORDER BY x.created_at DESC) FROM corrections x WHERE x.story_id=s.id) AS corrections
+      FROM stories s LEFT JOIN users c ON c.id=s.author_id
+      WHERE s.status='approved' AND s.latitude IS NOT NULL AND ($1::date IS NULL OR s.created_at >= $1::date) AND ($2::date IS NULL OR s.created_at < $2::date + 1)
+        AND ($3::text IS NULL OR s.topic=$3) ORDER BY s.created_at DESC LIMIT 500`, [d(req.query.from), d(req.query.to), req.query.topic || null]),
+    db.query(`SELECT id, business_name, tagline, whatsapp, category, latitude, longitude, (verified_at IS NOT NULL AND badge_paid_until > NOW()) AS verified FROM merchants WHERE status='ACTIVE' AND expires_at > NOW() AND latitude IS NOT NULL`)]);
+  res.set('Cache-Control', 'public, max-age=60').json({ stories: stories.rows, merchants: merchants.rows });
+});
+
+// Analytics and QR posters
+app.post('/api/events', async (req, res) => {
+  const { kind, ref, sub_county } = req.body || {};
+  if (['video_play', 'issue_download', 'merchant_tap', 'install'].includes(kind)) track(kind, String(ref || '').slice(0, 60), await subId(sub_county || ''));
+  res.status(204).end();
+});
+app.get('/q/:poster', (req, res) => { track('qr_scan', req.params.poster.slice(0, 60)); res.redirect('/?src=qr'); });
+
+app.use(express.static('public'));
+app.listen(process.env.PORT || 3000, () => console.log('County media app running'));
