@@ -1,1 +1,23 @@
+# secrets and local settings: NEVER commit these
+.env
+.env.*
+!.env.example
 
+# dependencies and logs
+node_modules/
+npm-debug.log*
+*.log
+
+# files that belong to one server, not to the code
+uploads/*
+!uploads/.gitkeep
+public/issues/*.pdf
+backups/
+*.sql.gz
+*.tgz
+
+# operating system and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
