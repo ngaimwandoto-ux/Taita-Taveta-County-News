@@ -1245,7 +1245,7 @@ async function waHandle(from, text) {
     const r = await createTip({ text: tipM[2], slug, contact: from, source: 'whatsapp', who: whoHash(from) });
     return r.error || (lang === 'sw' ? 'Asante! Tuma picha sasa ikiwa unayo. Hatutachapisha jina lako bila ruhusa.' : 'Thank you! Send a photo now if you have one. We never publish your name without asking.');
   }
-  if (!u.sub_county_id) return `*Taita Taveta County Review & Roundup*\n\nWhich town? Reply: Voi, Taveta, Mwatate or Wundanyi.\nUnaishi wapi? Jibu: Voi, Taveta, Mwatate au Wundanyi.`;
+  if (!u.sub_county_id) return `*Taita Taveta County News*\n\nWhich town? Reply: Voi, Taveta, Mwatate or Wundanyi.\nUnaishi wapi? Jibu: Voi, Taveta, Mwatate au Wundanyi.`;
   const name = (await db.query('SELECT name FROM sub_counties WHERE id=$1', [u.sub_county_id])).rows[0].name;
   const KW = { jobs: ['job'], kazi: ['job'], tenders: ['tender'], zabuni: ['tender'], events: ['event'], matukio: ['event'], facts: ['factcheck'], ukweli: ['factcheck'] }, w1 = t.split(/\s+/)[0];
   if (KW[w1]) return `*${w1.toUpperCase()}*\n\n` + await waList(KW[w1], u.sub_county_id, lang);
