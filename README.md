@@ -1,6 +1,6 @@
-# Taita Taveta County Review & Roundup: digital platform
+# Taita Taveta County News: digital platform
 
-A mobile-first news and daily-utility app (PWA) for two rival-voice papers, **The County Review** and **County Roundup**. Free issues, local video podcasts, daily prices and notices, and a KSh 600 self-service business listing paid by M-Pesa.
+Taita Taveta County News is a mobile-first news and daily-utility app (PWA) bringing together two rival-voice papers, **The County Review** and **County Roundup**. Free issues, local video podcasts, daily prices and notices, and a KSh 600 self-service business listing paid by M-Pesa.
 
 > **Status: first working draft.** The code passes syntax checks but has not been run end to end against a live database or the M-Pesa API. Test on the Safaricom sandbox before charging anyone.
 
